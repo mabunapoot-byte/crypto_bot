@@ -6,14 +6,14 @@ import pandas as pd
 import requests
 
 # ---------------------------------------------------------
-# 1. خادم Flask لإبقاء الخدمة نشطة
+# 1. خادم Flask لإبقاء الخدمة نشطة على Render
 # ---------------------------------------------------------
 app = Flask('')
 
 
 @app.route('/')
 def home():
-  return "🤖 Crypto Bot is alive and running!"
+  return "🤖 Crypto & Forex Bot is alive and running!"
 
 
 def run_web_server():
@@ -22,31 +22,61 @@ def run_web_server():
 
 
 # ---------------------------------------------------------
-# 2. الثوابت والمتغيرات (مع القيم الاحتياطية المباشرة)
+# 2. الثوابت والمتغيرات
 # ---------------------------------------------------------
 TELEGRAM_TOKEN = os.environ.get(
     'TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4'
 )
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7727265173')
-COIN_NAME = 'Bitcoin'
 INTERVAL_MINUTES = 15
 
 
 # ---------------------------------------------------------
-# 3. جلب البيانات عبر Coinbase API
+# 3. جلب أسعار العملات الأجنبية مقابل الجنيه المصري
 # ---------------------------------------------------------
-def fetch_technical_data():
-  url = 'https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=900'
-  headers = {'User-Agent': 'Mozilla/5.0'}
-
+def get_forex_rates():
   try:
-    response = requests.get(url, headers=headers, timeout=10)
-    response.raise_for_status()
-    data = response.json()
+    url = 'https://open.er-api.com/v6/latest/USD'
+    res = requests.get(url, timeout=5)
+    data = res.json().get('rates', {})
+    usd_egp = data.get('EGP', 48.5)
 
+    currencies = {
+        '🇺🇸 USD (دولار أمريكي)': usd_egp,
+        '🇪🇺 EUR (يورو)': (
+            (usd_egp / data.get('EUR', 1.0)) if data.get('EUR') else 0
+        ),
+        '🇬🇧 GBP (جنيه إسترليني)': (
+            (usd_egp / data.get('GBP', 1.0)) if data.get('GBP') else 0
+        ),
+        '🇸🇦 SAR (ريال سعودي)': (
+            (usd_egp / data.get('SAR', 3.75)) if data.get('SAR') else 0
+        ),
+        '🇦🇪 AED (درهم إماراتي)': (
+            (usd_egp / data.get('AED', 3.67)) if data.get('AED') else 0
+        ),
+        '🇰🇼 KWD (دينار كويتي)': (
+            (usd_egp / data.get('KWD', 0.30)) if data.get('KWD') else 0
+        ),
+    }
+    return currencies, usd_egp
+  except Exception as e:
+    print(f'⚠️ خطأ في جلب أسعار الصرف: {e}', flush=True)
+    return {'🇺🇸 USD (دولار أمريكي)': 48.5}, 48.5
+
+
+# ---------------------------------------------------------
+# 4. جلب وتحليل البيانات الفنية للعملات الرقمية
+# ---------------------------------------------------------
+def fetch_crypto_data(pair_symbol):
+  url = f'https://api.exchange.coinbase.com/products/{pair_symbol}/candles?granularity=900'
+  headers = {'User-Agent': 'Mozilla/5.0'}
+  try:
+    res = requests.get(url, headers=headers, timeout=8)
+    res.raise_for_status()
+    data = res.json()
     if not data:
-      print('⚠️ لم يتم استرجاع بيانات من Coinbase', flush=True)
-      return pd.DataFrame()
+      return None
 
     df = pd.DataFrame(
         data, columns=['timestamp', 'low', 'high', 'open', 'Price', 'volume']
@@ -62,18 +92,23 @@ def fetch_technical_data():
     loss = -delta.clip(upper=0)
     avg_gain = gain.ewm(alpha=1 / 14, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1 / 14, adjust=False).mean()
-
     rs = avg_gain / avg_loss
     df['RSI'] = 100 - (100 / (1 + rs))
 
-    return df.dropna()
+    last = df.dropna().iloc[-1]
+    return {
+        'Price': last['Price'],
+        'RSI': last['RSI'],
+        'SMA_10': last['SMA_10'],
+        'SMA_30': last['SMA_30'],
+    }
   except Exception as e:
-    print(f'❌ خطأ في جلب البيانات من Coinbase: {e}', flush=True)
-    return pd.DataFrame()
+    print(f'❌ خطأ في جلب {pair_symbol}: {e}', flush=True)
+    return None
 
 
 # ---------------------------------------------------------
-# 4. إرسال الرسائل عبر تيليجرام
+# 5. إرسال الرسائل عبر تيليجرام
 # ---------------------------------------------------------
 def send_telegram_message(message):
   url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
@@ -83,95 +118,89 @@ def send_telegram_message(message):
       'parse_mode': 'Markdown',
   }
   try:
-    response = requests.post(url, json=payload, timeout=10)
-    if response.status_code == 200:
-      print('✅ تم إرسال التقرير إلى تيليجرام بنجاح!', flush=True)
-      return True
-    else:
-      print(f'❌ فشل إرسال تيليجرام: {response.text}', flush=True)
-      return False
+    res = requests.post(url, json=payload, timeout=10)
+    return res.status_code == 200
   except Exception as e:
-    print(f'❌ خطأ في الاتصال بتيليجرام: {e}', flush=True)
+    print(f'❌ خطأ في إرسال تيليجرام: {e}', flush=True)
     return False
 
 
 # ---------------------------------------------------------
-# 5. الحلقة الرئيسية
+# 6. الحلقة الرئيسية للبوت
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت...', flush=True)
+  print('🤖 بدأ تشغيل بوت العملات الشامل وسعر الصرف...', flush=True)
 
-  # إرسال رسالة ترحيبية فورية عند الإطلاق
-  send_telegram_message(
-      '🚀 *تم تفعيل البوت بنجاح، جاري إرسال التقرير الدوري الأول...*'
-  )
+  # قائمة أهم العملات الرقمية
+  crypto_pairs = {
+      'Bitcoin (BTC)': 'BTC-USD',
+      'Ethereum (ETH)': 'ETH-USD',
+      'Solana (SOL)': 'SOL-USD',
+      'Ripple (XRP)': 'XRP-USD',
+      'Cardano (ADA)': 'ADA-USD',
+      'Binance Coin (BNB)': 'BNB-USD',
+      'Dogecoin (DOGE)': 'DOGE-USD',
+  }
 
   while True:
     try:
-      df_tech = fetch_technical_data()
-      if not df_tech.empty:
-        last_row = df_tech.iloc[-1]
-        current_price = last_row['Price']
-        current_rsi = last_row['RSI']
-        sma_10 = last_row['SMA_10']
-        sma_30 = last_row['SMA_30']
-        signal_date = last_row['Date'].strftime('%Y-%m-%d %H:%M UTC')
+      forex_rates, usd_egp = get_forex_rates()
 
-        if sma_10 > sma_30 and 30 < current_rsi < 70:
-          status_desc = (
-              '🟢 *إشارة شراء (Buy)*\nالاتجاه صاعد ومؤشر RSI في منطقة استقرار'
-              ' آمنة.'
-          )
-        elif current_rsi >= 70:
-          status_desc = (
-              '⚠️ *تنبيه تشبع شرائي (Overbought)*\nالسعر مرتفع جداً، يُنصح'
-              ' بتجنب الشراء حالياً.'
-          )
-        elif current_rsi <= 30:
-          status_desc = (
-              'ℹ️ *تنبيه تشبع بيعي (Oversold)*\nالسعر منخفض جداً، ترقب ارتداد'
-              ' صاعد محتمل.'
-          )
-        elif sma_10 < sma_30:
-          status_desc = (
-              '🔴 *إشارة بيع (Sell)*\nالاتجاه هابط والمتوسط السريع أدنى من'
-              ' البطيء.'
-          )
-        else:
-          status_desc = (
-              '⚪ *احتفاظ (Hold)*\nلا توجد إشارة اتجاه قوية واضحة حالياً.'
-          )
+      # 1. بناء قسم أسعار العملات الأجنبية
+      forex_msg = '💵 *أسعار العملات الأجنبية بالجنيه المصري (EGP):*\n'
+      for curr_name, rate in forex_rates.items():
+        forex_msg += f'• {curr_name}: *{rate:,.2f} ج.م*\n'
 
-        msg = f"""🤖 *تقرير دوري مجدول تلقائياً (السحابة)*
------------------------------------
-🪙 *العملة:* {COIN_NAME}
-💰 *السعر الحالي:* ${current_price:,.2f}
-⏱ *التوقيت:* {signal_date}
------------------------------------
-📈 *المؤشرات الفنية:*
-• المتوسط السريع (SMA 10): ${sma_10:,.2f}
-• المتوسط البطيء (SMA 30): ${sma_30:,.2f}
-• مؤشر القوة النسبية (RSI): {current_rsi:.1f}
------------------------------------
-🚦 *القرار الاستثماري والتنبيه:*
-{status_desc}
------------------------------------
-⚙️ *إرسال تلقائي كل {INTERVAL_MINUTES} دقيقة*"""
+      # 2. بناء قسم العملات الرقمية
+      crypto_msg = '\n🪙 *تحليل أبرز العملات الرقمية:*\n'
+      crypto_msg += '-----------------------------------\n'
 
-        send_telegram_message(msg)
+      for name, pair in crypto_pairs.items():
+        cdata = fetch_crypto_data(pair)
+        if cdata:
+          price_usd = cdata['Price']
+          price_egp = price_usd * usd_egp
+          rsi = cdata['RSI']
+          sma10 = cdata['SMA_10']
+          sma30 = cdata['SMA_30']
+
+          if sma10 > sma30 and 30 < rsi < 70:
+            signal = '🟢 شراء'
+          elif rsi >= 70:
+            signal = '⚠️ تشبع شرائي'
+          elif rsi <= 30:
+            signal = 'ℹ️ تشبع بيعي'
+          elif sma10 < sma30:
+            signal = '🔴 بيع'
+          else:
+            signal = '⚪ احتفاظ'
+
+          crypto_msg += (
+              f'📌 *{name}*\n'
+              f'• السعر: *${price_usd:,.2f}* ({price_egp:,.0f} ج.م)\n'
+              f'• RSI: *{rsi:.1f}* | الإشارة: *{signal}*\n'
+              '-----------------------------------\n'
+          )
+        time.sleep(0.3)
+
+      # 3. تجميع التقرير النهائي
+      current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
+      full_report = f"""📊 *التقرير الشامل للعملات وسعر الصرف*
+⏱ *التوقيت:* {current_time_str}
+===================================
+{forex_msg}===================================
+{crypto_msg}⚙️ *تحديث تلقائي كل {INTERVAL_MINUTES} دقيقة عبر السحابة*"""
+
+      send_telegram_message(full_report)
 
     except Exception as e:
       print(f'❌ خطأ في الحلقة الرئيسية: {e}', flush=True)
 
-    print(
-        f'😴 جاري الانتظار {INTERVAL_MINUTES} دقيقة حتى التقرير القادم...',
-        flush=True,
-    )
     time.sleep(INTERVAL_MINUTES * 60)
 
 
 # ---------------------------------------------------------
-# 6. نقطة الانطلاق
+# 7. نقطة الانطلاق
 # ---------------------------------------------------------
 if __name__ == '__main__':
   web_thread = Thread(target=run_web_server)

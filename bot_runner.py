@@ -78,7 +78,7 @@ def send_email_report(subject, message_body):
 
 
 # ---------------------------------------------------------
-# 4. إرسال الواتساب وتيليجرام
+# 4. إرسال الواتساب وتيليجرام (مُصلح الترميز والتنسيق)
 # ---------------------------------------------------------
 def send_whatsapp_message(message_body):
   phone_number = (
@@ -93,7 +93,8 @@ def send_whatsapp_message(message_body):
     return False
 
   try:
-    encoded_text = urllib.parse.quote_plus(message_body)
+    # استخدام quote العادي بدون safe لضمان تحويل المسافات لـ %20 وعدم تشويه التنسيق بـ +
+    encoded_text = urllib.parse.quote(message_body, safe='')
     url = f'https://api.callmebot.com/whatsapp.php?phone={phone_number}&text={encoded_text}&apikey={api_key}'
     res = requests.get(url, timeout=15)
     return res.status_code == 200
@@ -137,19 +138,18 @@ def get_egypt_macro_indicators():
 
 
 def fetch_live_arabic_news():
-  """جلب أحدث الأخبار الاقتصادية باللغة العربية بالكامل عبر خلاصات Google News"""
   news_data = {}
   sources = {
-      '🇺🇸 الاقتصاد الأمريكي والسياسة النقدية': (
+      '🇺🇸 أمريكا والفيدرالي': (
           'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar'
       ),
-      '🇪🇺 أوروبا وروسيا والطاقة': (
+      '🇪🇺 أوروبا وروسيا': (
           'https://news.google.com/rss/search?q=المركزي+الأوروبي+روسيا+تضخم&hl=ar&gl=EG&ceid=EG:ar'
       ),
-      '🇨🇳 🇯🇵 أسواق آسيا والصين': (
+      '🇨🇳 🇯🇵 أسواق آسيا': (
           'https://news.google.com/rss/search?q=اقتصاد+الصين+اليابان+أسواق&hl=ar&gl=EG&ceid=EG:ar'
       ),
-      '🌍 الشرق الأوسط ومصر': (
+      '🌍 مصر والشرق الأوسط': (
           'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar'
       ),
   }
@@ -346,10 +346,7 @@ def fetch_technical_data(pair_symbol):
 # 7. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print(
-      '🤖 بدأ تشغيل البوت المحدث بالمؤشرات الرسمية والأخبار العربية...',
-      flush=True,
-  )
+  print('🤖 بدأ تشغيل البوت المحدث مع إصلاح تنسيق الواتساب...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -464,37 +461,31 @@ def main_loop():
         if send_telegram_message(full_tg_report):
           last_telegram_time = current_time
 
-      # --- 2. إرسال الواتساب (كل ساعتين) ---
+      # --- 2. إرسال الواتساب (كل ساعتين) - ملخص مريح ومُنسق بكفاءة ---
       if (
           current_time - last_whatsapp_time >= (WHATSAPP_INTERVAL_HOURS * 3600)
           or last_whatsapp_time == 0
       ):
-        wa_msg = (
-            f'📊 *تقرير السوق والمؤشرات الرسمية*\n⏱'
-            f' {current_time_str}\n-----------------------------------\n💵'
-            f' *أسعار العملات (EGP):*\n• USD: {usd_egp:.2f} | EUR:'
-            f" {forex_rates.get('EUR', 0):.2f}\n• GBP:"
-            f" {forex_rates.get('GBP', 0):.2f} | SAR:"
-            f" {forex_rates.get('SAR', 0):.2f}\n• AED:"
-            f" {forex_rates.get('AED', 0):.2f} | KWD:"
-            f" {forex_rates.get('KWD', 0):.2f}\n-----------------------------------\n🇪🇬"
-            ' *بيانات CBE / CAPMAS / IMF:*\n• الفائدة الرئيسية:'
-            f" {egypt_macro.get('سعر الفائدة الرئيسي (البنك المركزي CBE)')}\n•"
-            ' التضخم السنوي:'
-            f" {egypt_macro.get('معدل التضخم السنوي (CAPMAS / CBE)')} |"
-            ' البطالة:'
-            f" {egypt_macro.get('معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)')}\n•"
-            ' نمو IMF:'
-            f" {egypt_macro.get('توقعات نمو الاقتصاد (صندوق النقد الدولي IMF)')}\n-----------------------------------\n👑"
-            ' *أسعار الصاغة المصرية (الجرام):*\n• الذهب (21):'
-            f" {metals.get('الذهب (21)', 0):,.0f} ج.م\n• الذهب (24):"
-            f" {metals.get('الذهب (24)', 0):,.0f} ج.م\n• الجنيه الذهب:"
-            f" {metals.get('الجنيه الذهب', 0):,.0f} ج.م\n• الفضة (999):"
-            f" {metals.get('الفضة (999)', 0):,.2f}"
-            ' ج.م\n-----------------------------------\n🪙 *تحليل العملات'
-            f' الرقمية:*\n{wa_crypto_details}-----------------------------------\n⚙️'
-            ' التحديث القادم بعد ساعتين'
-        )
+        wa_msg = f"""📊 *تقرير السوق والمؤشرات الرسمية*
+⏱ {current_time_str}
+-----------------------------------
+💵 *أسعار العملات (EGP):*
+• USD: {usd_egp:.2f} | EUR: {forex_rates.get('EUR', 0):.2f}
+• GBP: {forex_rates.get('GBP', 0):.2f} | SAR: {forex_rates.get('SAR', 0):.2f}
+-----------------------------------
+🇪🇬 *مؤشرات CBE / CAPMAS / IMF:*
+• فائدة المركزي: {egypt_macro.get('سعر الفائدة الرئيسي (البنك المركزي CBE)')}
+• التضخم: {egypt_macro.get('معدل التضخم السنوي (CAPMAS / CBE)')} | البطالة: {egypt_macro.get('معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)')}
+• نمو IMF: {egypt_macro.get('توقعات نمو الاقتصاد (صندوق النقد الدولي IMF)')}
+-----------------------------------
+👑 *أسعار الصاغة المصرية (الجرام):*
+• عيار 21: {metals.get('الذهب (21)', 0):,.0f} ج.م
+• عيار 24: {metals.get('الذهب (24)', 0):,.0f} ج.م
+• الجنيه الذهب: {metals.get('الجنيه الذهب', 0):,.0f} ج.م
+-----------------------------------
+🪙 *العملات الرقمية:*
+{wa_crypto_details}-----------------------------------
+⚙️ التحديث القادم بعد ساعتين"""
 
         if send_whatsapp_message(wa_msg):
           last_whatsapp_time = current_time

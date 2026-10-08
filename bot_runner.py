@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 
 # ---------------------------------------------------------
-# 1. خادم Flask لفتح المنفذ وتلبية شرط Render
+# 1. خادم Flask لإبقاء الخدمة نشطة
 # ---------------------------------------------------------
 app = Flask('')
 
@@ -22,19 +22,20 @@ def run_web_server():
 
 
 # ---------------------------------------------------------
-# 2. الثوابت والمتغيرات
+# 2. الثوابت والمتغيرات (مع القيم الاحتياطية المباشرة)
 # ---------------------------------------------------------
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+TELEGRAM_TOKEN = os.environ.get(
+    'TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4'
+)
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7727265173')
 COIN_NAME = 'Bitcoin'
 INTERVAL_MINUTES = 15
 
 
 # ---------------------------------------------------------
-# 3. جلب البيانات عبر Coinbase API (مفتوح ولا يحظر Render)
+# 3. جلب البيانات عبر Coinbase API
 # ---------------------------------------------------------
 def fetch_technical_data():
-  # جلب الشموع اليابانية للإطار الزمني 15 دقيقة (900 ثانية)
   url = 'https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=900'
   headers = {'User-Agent': 'Mozilla/5.0'}
 
@@ -47,18 +48,15 @@ def fetch_technical_data():
       print('⚠️ لم يتم استرجاع بيانات من Coinbase', flush=True)
       return pd.DataFrame()
 
-    # Coinbase ترجع ترتيب العناصر: [timestamp, low, high, open, close, volume]
     df = pd.DataFrame(
         data, columns=['timestamp', 'low', 'high', 'open', 'Price', 'volume']
     )
     df['Date'] = pd.to_datetime(df['timestamp'], unit='s')
     df = df.sort_values('Date').reset_index(drop=True)
 
-    # المتوسطات المتحركة
     df['SMA_10'] = df['Price'].rolling(window=10).mean()
     df['SMA_30'] = df['Price'].rolling(window=30).mean()
 
-    # حساب RSI بالنعومة الأسية الاحترافية
     delta = df['Price'].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
@@ -78,10 +76,6 @@ def fetch_technical_data():
 # 4. إرسال الرسائل عبر تيليجرام
 # ---------------------------------------------------------
 def send_telegram_message(message):
-  if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-    print('⚠️ متغيرات البيئة للتيليجرام غير مضبوطة بشكل صحيح!', flush=True)
-    return False
-
   url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
   payload = {
       'chat_id': TELEGRAM_CHAT_ID,
@@ -105,11 +99,11 @@ def send_telegram_message(message):
 # 5. الحلقة الرئيسية
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت مع Coinbase API...', flush=True)
+  print('🤖 بدأ تشغيل البوت...', flush=True)
 
-  # إرسال تنبيه تأكيد فوري عند بداية تشغيل السيرفر
+  # إرسال رسالة ترحيبية فورية عند الإطلاق
   send_telegram_message(
-      '🚀 *تم تحديث البوت والربط مع Coinbase API بنجاح! جاري التوصيل...*'
+      '🚀 *تم تفعيل البوت بنجاح، جاري إرسال التقرير الدوري الأول...*'
   )
 
   while True:

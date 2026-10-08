@@ -29,19 +29,22 @@ def run_web_server():
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7727265173')
 
+# بيانات الواتساب
 MY_PHONE_NUMBER = os.environ.get('MY_PHONE_NUMBER', '201201211155')
 CALLMEBOT_API_KEY = os.environ.get('CALLMEBOT_API_KEY', '3424442')
 
 # إعدادات البريد الإلكتروني
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'mmabdelazez@gmail.com')
 SENDER_PASSWORD = os.environ.get('SENDER_PASSWORD', '')
 RECEIVER_EMAIL = os.environ.get('RECEIVER_EMAIL', 'mabunapoot@gmail.com')
 
-SHORT_INTERVAL_MINUTES = 15
+# الجدولة الزمنية المحدثة
+TELEGRAM_INTERVAL_MINUTES = 15
+WHATSAPP_INTERVAL_HOURS = 2
 EMAIL_INTERVAL_HOURS = 3
 
 # ---------------------------------------------------------
-# 3. إرسال البريد الإلكتروني (SMTP)
+# 3. إرسال البريد الإلكتروني عبر Gmail SMTP
 # ---------------------------------------------------------
 def send_email_report(subject, message_body):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
@@ -62,7 +65,7 @@ def send_email_report(subject, message_body):
         server.send_message(msg)
         server.quit()
 
-        print(f"📧 تم إرسال التقرير الشامل لـ {RECEIVER_EMAIL} بنجاح!", flush=True)
+        print(f"📧 تم إرسال التقرير الشامل لـ {RECEIVER_EMAIL} بنجاح عبر البريد!", flush=True)
         return True
     except Exception as e:
         print(f"❌ خطأ في إرسال البريد الإلكتروني: {e}", flush=True)
@@ -98,7 +101,7 @@ def send_telegram_message(message):
         return False
 
 # ---------------------------------------------------------
-# 5. جلب أسعار العملات والمعادن والأخبار
+# 5. جلب أسعار العملات والمعادن والتحليل الفني
 # ---------------------------------------------------------
 def get_forex_and_metals():
     try:
@@ -116,15 +119,13 @@ def get_forex_and_metals():
             'KWD': (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0,
         }
         
-        # أسعار التقريبية للأونصة بالدولار والجرام بالجنيه
-        gold_oz_usd = 2650.0  # سعر الأونصة العالمي الفعلي
+        gold_oz_usd = 2650.0
         silver_oz_usd = 31.5
         
         metals = {
-            'الذهب (عيار 24)': (gold_oz_usd / 31.1035) * usd_egp,
-            'الذهب (عيار 21)': ((gold_oz_usd / 31.1035) * usd_egp) * (21/24),
-            'الفضة (عيار 999)': (silver_oz_usd / 31.1035) * usd_egp,
-            'البلاتين (الأونصة)': 980.0 * usd_egp
+            'الذهب (24)': (gold_oz_usd / 31.1035) * usd_egp,
+            'الذهب (21)': ((gold_oz_usd / 31.1035) * usd_egp) * (21/24),
+            'الفضة (999)': (silver_oz_usd / 31.1035) * usd_egp,
         }
         
         return forex, metals, usd_egp
@@ -167,18 +168,17 @@ def get_crypto_and_local_news():
     news = [
         "🌐 البيتكوين يحافظ على استقراره أعلا مستويات الدعم الرئيسية مع ترقب قرارات الفائدة الأمريكية.",
         "🌐 نمو الممتلكات المؤسسية في صناديق ETF للعملات الرقمية بقيادة بلاك روك.",
-        "🇪🇬 البنك المركزي المصري يواصل تعزيز التدفقت النقدية واستقرار سوق الصرف الرسمي.",
+        "🇪🇬 البنك المركزي المصري يواصل تعزيز التدفقات النقدية واستقرار سوق الصرف الرسمي.",
         "🚗 سوق السيارات المصري يشهد استقراراً نسبيًا في أسعار الفئات الاقتصادية مع توفر الموديلات التجميع المحلي."
     ]
     return news
 
 def get_auto_market_prices(usd_egp):
-    # متوسط أسعار تقريبية لقطاع السيارات بالسوق المصري
     cars = {
-        "نيسان صني (تجميع محلي)": "695,000 - 750,000 ج.م",
+        "نيسان صني": "695,000 - 750,000 ج.م",
         "شيري أريزو 5": "650,000 - 710,000 ج.م",
         "هيونداي إلترا AD": "890,000 - 980,000 ج.م",
-        "تويوتا كورولا (1.6L)": "1,300,000 - 1,450,000 ج.م",
+        "تويوتا كورولا": "1,300,000 - 1,450,000 ج.م",
         "إم جي ZS": "975,000 - 1,050,000 ج.م"
     }
     return cars
@@ -187,7 +187,7 @@ def get_auto_market_prices(usd_egp):
 # 6. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-    print("🤖 بدأ تشغيل البوت المطور (تيليجرام + واتساب + بريد إلكتروني كل 3 ساعات)...", flush=True)
+    print("🤖 بدأ تشغيل البوت الجدولة المحدثة (الواتساب كل ساعتين بتفاصيل كاملة)...", flush=True)
 
     crypto_pairs = {
         'Bitcoin (BTC)': 'BTC-USD',
@@ -197,6 +197,7 @@ def main_loop():
         'Dogecoin (DOGE)': 'DOGE-USD'
     }
 
+    last_whatsapp_time = 0
     last_email_time = 0
 
     while True:
@@ -205,9 +206,10 @@ def main_loop():
             forex_rates, metals, usd_egp = get_forex_and_metals()
             current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
 
-            # --- بناء تقرير العملات الرقمية ---
-            crypto_msg = ""
-            wa_crypto_msg = ""
+            # --- 1. بناء بيانات التحليل الفني لجميع القنوات ---
+            crypto_msg_tg = "\n📊 التحليل الفني والقرارات الاستثمارية للعملات الرقمية:\n===================================\n"
+            wa_crypto_details = ""
+
             for name, pair in crypto_pairs.items():
                 cdata = fetch_technical_data(pair)
                 if cdata:
@@ -219,40 +221,69 @@ def main_loop():
 
                     if sma10 > sma30 and 30 < rsi < 70:
                         status_short = "Buy"
-                        status_desc = "🟢 إشارة شراء (Buy)"
+                        status_desc_tg = "🟢 إشارة شراء (Buy)\n  الاتجاه صاعد ومؤشر RSI في منطقة استقرار آمنة."
                     elif rsi >= 70:
                         status_short = "Overbought"
-                        status_desc = "⚠️ تنبيه تشبع شرائي (Overbought)"
+                        status_desc_tg = "⚠️ تنبيه تشبع شرائي (Overbought)\n  السعر مرتفع جداً، يُنصح بتجنب الشراء."
                     elif rsi <= 30:
                         status_short = "Oversold"
-                        status_desc = "ℹ️ تنبيه تشبع بيعي (Oversold)"
+                        status_desc_tg = "ℹ️ تنبيه تشبع بيعي (Oversold)\n  السعر منخفض جداً، ترقب ارتداد صاعد محتمل."
                     elif sma10 < sma30:
                         status_short = "Sell"
-                        status_desc = "🔴 إشارة بيع (Sell)"
+                        status_desc_tg = "🔴 إشارة بيع (Sell)\n  الاتجاه هابط والمتوسط السريع أدنى من البطيء."
                     else:
                         status_short = "Hold"
-                        status_desc = "⚪ احتفاظ (Hold)"
+                        status_desc_tg = "⚪ احتفاظ (Hold)\n  لا توجد إشارة اتجاه قوية واضحة."
 
-                    crypto_msg += (
+                    crypto_msg_tg += (
                         f"🪙 {name}\n"
                         f"• السعر: ${price_usd:,.2f} ({price_egp:,.0f} ج.م)\n"
-                        f"• RSI: {rsi:.1f} | القرار: {status_desc}\n"
+                        f"📈 المؤشرات الفنية:\n"
+                        f"  - المتوسط السريع (SMA 10): ${sma10:,.2f}\n"
+                        f"  - المتوسط البطيء (SMA 30): ${sma30:,.2f}\n"
+                        f"  - مؤشر القوة النسبية (RSI): {rsi:.1f}\n"
+                        f"🚦 القرار الاستثماري:\n{status_desc_tg}\n"
                         f"-----------------------------------\n"
                     )
-                    wa_crypto_msg += f"- {name.split(' ')[0]}: ${price_usd:,.2f} ({status_short})\n"
+
+                    # تفاصيل موسعة للواتساب
+                    short_name = name.split(' ')[0]
+                    wa_crypto_details += f"• {short_name}: ${price_usd:,.2f} | RSI:{rsi:.1f} ({status_short})\n"
+
                 time.sleep(0.2)
 
-            # --- 1. إرسال الواتساب وتيليجرام المعتاد (كل 15 دقيقة) ---
-            wa_msg = f"Market Summary ({current_time_str}):\n"
-            wa_msg += f"USD: {usd_egp:.2f} EGP | EUR: {forex_rates.get('EUR', 0):.2f} EGP\n"
-            wa_msg += f"-------------------\nCrypto Rates:\n{wa_crypto_msg}"
-            
-            send_whatsapp_message(wa_msg)
-            
-            tg_report = f"📊 تقرير السوق والسعر المباشر\n⏱ {current_time_str}\n===================\n💵 الدولار: {usd_egp:.2f} ج.م\n===================\n{crypto_msg}"
-            send_telegram_message(tg_report)
+            # --- 2. إرسال تيليجرام التلقائي (كل 15 دقيقة) ---
+            forex_msg_tg = "💵 أسعار العملات الأجنبية بالجنيه المصري (EGP):\n"
+            for curr_name, rate in forex_rates.items():
+                forex_msg_tg += f"• {curr_name}: {rate:,.2f} ج.م\n"
 
-            # --- 2. إرسال البريد الإلكتروني الشامل (كل 3 ساعات) ---
+            full_tg_report = f"""📊 تقرير السوق الشامل والتحليل الكمي
+⏱ التوقيت: {current_time_str}
+===================================
+{forex_msg_tg}===================================
+{crypto_msg_tg}⚙️ إرسال تلقائي كل {TELEGRAM_INTERVAL_MINUTES} دقيقة عبر السحابة"""
+
+            send_telegram_message(full_tg_report)
+
+            # --- 3. إرسال الواتساب الموسع (كل ساعتين) ---
+            if current_time - last_whatsapp_time >= (WHATSAPP_INTERVAL_HOURS * 3600) or last_whatsapp_time == 0:
+                wa_msg = f"📊 *تقرير السوق التفصيلي (كل ساعتين)*\n⏱ {current_time_str}\n-----------------------------------\n"
+                wa_msg += f"💵 *أسعار العملات (EGP):*\n"
+                wa_msg += f"• USD: {usd_egp:.2f} | EUR: {forex_rates.get('EUR', 0):.2f}\n"
+                wa_msg += f"• GBP: {forex_rates.get('GBP', 0):.2f} | SAR: {forex_rates.get('SAR', 0):.2f}\n"
+                wa_msg += f"• AED: {forex_rates.get('AED', 0):.2f} | KWD: {forex_rates.get('KWD', 0):.2f}\n"
+                wa_msg += f"-----------------------------------\n"
+                wa_msg += f"👑 *أسعار المعادن (الجرام):*\n"
+                for m_name, m_val in metals.items():
+                    wa_msg += f"• {m_name}: {m_val:,.0f} ج.م\n"
+                wa_msg += f"-----------------------------------\n"
+                wa_msg += f"🪙 *تحليل العملات الرقمية:*\n{wa_crypto_details}"
+                wa_msg += f"-----------------------------------\n⚙️ التحديث القادم بعد ساعتين"
+
+                if send_whatsapp_message(wa_msg):
+                    last_whatsapp_time = current_time
+
+            # --- 4. إرسال البريد الإلكتروني الشامل (كل 3 ساعات) ---
             if current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600) or last_email_time == 0:
                 news_list = get_crypto_and_local_news()
                 auto_list = get_auto_market_prices(usd_egp)
@@ -276,7 +307,8 @@ def main_loop():
 • EUR (يورو): {forex_rates.get('EUR', 0):.2f} ج.م
 • GBP (جنيه إسترليني): {forex_rates.get('GBP', 0):.2f} ج.م
 • SAR (ريال سعودي): {forex_rates.get('SAR', 0):.2f} ج.م
-• AED (درهم إماراتي): {forex_rates.get('AED', 0):.2f} EGP
+• AED (درهم إماراتي): {forex_rates.get('AED', 0):.2f} ج.م
+• KWD (دينار كويتي): {forex_rates.get('KWD', 0):.2f} ج.م
 
 3️⃣ بورصة المعادن النفيسة (سعر الجرام بالجنيه):
 --------------------------------------------------
@@ -284,9 +316,9 @@ def main_loop():
 
 4️⃣ مؤشرات وتحليل العملات الرقمية:
 --------------------------------------------------
-{crypto_msg}
+{crypto_msg_tg}
 
-5️⃣ مؤشر أسعار قطاع السيارات في مصر (تحديث دروري):
+5️⃣ مؤشر أسعار قطاع السيارات في مصر:
 --------------------------------------------------
 {auto_str}
 
@@ -301,7 +333,7 @@ def main_loop():
         except Exception as e:
             print(f"❌ خطأ في الحلقة الرئيسية: {e}", flush=True)
 
-        time.sleep(SHORT_INTERVAL_MINUTES * 60)
+        time.sleep(TELEGRAM_INTERVAL_MINUTES * 60)
 
 # ---------------------------------------------------------
 # 7. نقطة الانطلاق

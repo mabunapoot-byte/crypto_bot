@@ -31,7 +31,7 @@ TELEGRAM_TOKEN = os.environ.get(
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7727265173')
 
 # بيانات الواتساب المحدثة عبر CallMeBot
-MY_PHONE_NUMBER = os.environ.get('MY_PHONE_NUMBER', '201101219155')
+MY_PHONE_NUMBER = os.environ.get('MY_PHONE_NUMBER', '+201101219155')
 CALLMEBOT_API_KEY = os.environ.get('CALLMEBOT_API_KEY', '6832353')
 
 INTERVAL_MINUTES = 15

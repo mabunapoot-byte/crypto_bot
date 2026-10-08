@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 
 # ---------------------------------------------------------
-# 1. خادم Flask لإبقاء الخدمة نشطة على Render
+# 1. خادم Flask لضمان استمرار الخدمة على Render
 # ---------------------------------------------------------
 app = Flask('')
 
@@ -66,9 +66,9 @@ def get_forex_rates():
 
 
 # ---------------------------------------------------------
-# 4. جلب وتحليل البيانات الفنية للعملات الرقمية
+# 4. جلب وتحليل البيانات الفنية المتقدمة من Coinbase API
 # ---------------------------------------------------------
-def fetch_crypto_data(pair_symbol):
+def fetch_technical_data(pair_symbol):
   url = f'https://api.exchange.coinbase.com/products/{pair_symbol}/candles?granularity=900'
   headers = {'User-Agent': 'Mozilla/5.0'}
   try:
@@ -129,16 +129,14 @@ def send_telegram_message(message):
 # 6. الحلقة الرئيسية للبوت
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت العملات الشامل وسعر الصرف...', flush=True)
+  print('🤖 بدأ تشغيل بوت التحليل الفني والعملات الشامل...', flush=True)
 
-  # قائمة أهم العملات الرقمية
+  # قائمة أبرز العملات الرقمية
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
       'Ethereum (ETH)': 'ETH-USD',
       'Solana (SOL)': 'SOL-USD',
       'Ripple (XRP)': 'XRP-USD',
-      'Cardano (ADA)': 'ADA-USD',
-      'Binance Coin (BNB)': 'BNB-USD',
       'Dogecoin (DOGE)': 'DOGE-USD',
   }
 
@@ -146,17 +144,19 @@ def main_loop():
     try:
       forex_rates, usd_egp = get_forex_rates()
 
-      # 1. بناء قسم أسعار العملات الأجنبية
+      # 1. قسم العملات الأجنبية
       forex_msg = '💵 *أسعار العملات الأجنبية بالجنيه المصري (EGP):*\n'
       for curr_name, rate in forex_rates.items():
         forex_msg += f'• {curr_name}: *{rate:,.2f} ج.م*\n'
 
-      # 2. بناء قسم العملات الرقمية
-      crypto_msg = '\n🪙 *تحليل أبرز العملات الرقمية:*\n'
-      crypto_msg += '-----------------------------------\n'
+      # 2. قسم التحليل الفني والقرارات الاستثمارية
+      crypto_msg = (
+          '\n📊 *التحليل الفني والقرارات الاستثمارية للعملات الرقمية:*\n'
+      )
+      crypto_msg += '===================================\n'
 
       for name, pair in crypto_pairs.items():
-        cdata = fetch_crypto_data(pair)
+        cdata = fetch_technical_data(pair)
         if cdata:
           price_usd = cdata['Price']
           price_egp = price_usd * usd_egp
@@ -164,32 +164,50 @@ def main_loop():
           sma10 = cdata['SMA_10']
           sma30 = cdata['SMA_30']
 
+          # تحديد القرار الاستثماري والتنبيه
           if sma10 > sma30 and 30 < rsi < 70:
-            signal = '🟢 شراء'
+            status_desc = (
+                '🟢 *إشارة شراء (Buy)*\n  الاتجاه صاعد ومؤشر RSI في منطقة استقرار'
+                ' آمنة.'
+            )
           elif rsi >= 70:
-            signal = '⚠️ تشبع شرائي'
+            status_desc = (
+                '⚠️ *تنبيه تشبع شرائي (Overbought)*\n  السعر مرتفع جداً، يُنصح'
+                ' بتجنب الشراء.'
+            )
           elif rsi <= 30:
-            signal = 'ℹ️ تشبع بيعي'
+            status_desc = (
+                'ℹ️ *تنبيه تشبع بيعي (Oversold)*\n  السعر منخفض جداً، ترقب ارتداد'
+                ' صاعد محتمل.'
+            )
           elif sma10 < sma30:
-            signal = '🔴 بيع'
+            status_desc = (
+                '🔴 *إشارة بيع (Sell)*\n  الاتجاه هابط والمتوسط السريع أدنى من'
+                ' البطيء.'
+            )
           else:
-            signal = '⚪ احتفاظ'
+            status_desc = (
+                '⚪ *احتفاظ (Hold)*\n  لا توجد إشارة اتجاه قوية واضحة.'
+            )
 
           crypto_msg += (
-              f'📌 *{name}*\n'
+              f'🪙 *{name}*\n'
               f'• السعر: *${price_usd:,.2f}* ({price_egp:,.0f} ج.م)\n'
-              f'• RSI: *{rsi:.1f}* | الإشارة: *{signal}*\n'
+              f'📈 *المؤشرات الفنية:*\n'
+              f'  - المتوسط السريع (SMA 10): *${sma10:,.2f}*\n'
+              f'  - المتوسط البطيء (SMA 30): *${sma30:,.2f}*\n'
+              f'  - مؤشر القوة النسبية (RSI): *{rsi:.1f}*\n'
+              f'🚦 *القرار الاستثماري:* {status_desc}\n'
               '-----------------------------------\n'
           )
         time.sleep(0.3)
 
-      # 3. تجميع التقرير النهائي
       current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
-      full_report = f"""📊 *التقرير الشامل للعملات وسعر الصرف*
+      full_report = f"""📊 *تقرير السوق الشامل والتحليل الكمي*
 ⏱ *التوقيت:* {current_time_str}
 ===================================
 {forex_msg}===================================
-{crypto_msg}⚙️ *تحديث تلقائي كل {INTERVAL_MINUTES} دقيقة عبر السحابة*"""
+{crypto_msg}⚙️ *إرسال تلقائي كل {INTERVAL_MINUTES} دقيقة عبر السحابة*"""
 
       send_telegram_message(full_report)
 

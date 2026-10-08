@@ -23,14 +23,13 @@ def run_web_server():
 
 
 # ---------------------------------------------------------
-# 2. الثوابت والمتغيرات (مدمج بها بياناتك الخاصة)
+# 2. الثوابت والمتغيرات
 # ---------------------------------------------------------
 TELEGRAM_TOKEN = os.environ.get(
     'TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4'
 )
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7727265173')
 
-# بيانات الواتساب عبر CallMeBot الخاص بك
 MY_PHONE_NUMBER = os.environ.get('MY_PHONE_NUMBER', '+201101219155')
 CALLMEBOT_API_KEY = os.environ.get('CALLMEBOT_API_KEY', '8946257')
 
@@ -38,7 +37,7 @@ INTERVAL_MINUTES = 15
 
 
 # ---------------------------------------------------------
-# 3. إرسال الواتساب عبر CallMeBot API المجاني
+# 3. إرسال الواتساب عبر CallMeBot API (مختصر)
 # ---------------------------------------------------------
 def send_whatsapp_message(message_body):
   phone_number = MY_PHONE_NUMBER.strip()
@@ -53,7 +52,7 @@ def send_whatsapp_message(message_body):
     url = f'https://api.callmebot.com/whatsapp.php?phone={phone_number}&text={encoded_text}&apikey={api_key}'
     response = requests.get(url, timeout=15)
 
-    if response.status_code == 200:
+    if response.status_code == 200 and 'Message queued' in response.text or 'Message to' in response.text:
       print('💬 تم إرسال تقرير الواتساب بنجاح عبر CallMeBot!', flush=True)
       return True
     else:
@@ -65,7 +64,7 @@ def send_whatsapp_message(message_body):
 
 
 # ---------------------------------------------------------
-# 4. إرسال الرسائل عبر تيليجرام
+# 4. إرسال الرسائل عبر تيليجرام (تفصيلي)
 # ---------------------------------------------------------
 def send_telegram_message(message):
   url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
@@ -93,27 +92,17 @@ def get_forex_rates():
     usd_egp = data.get('EGP', 48.5)
 
     currencies = {
-        '🇺🇸 USD (دولار أمريكي)': usd_egp,
-        '🇪🇺 EUR (يورو)': (
-            (usd_egp / data.get('EUR', 1.0)) if data.get('EUR') else 0
-        ),
-        '🇬🇧 GBP (جنيه إسترليني)': (
-            (usd_egp / data.get('GBP', 1.0)) if data.get('GBP') else 0
-        ),
-        '🇸🇦 SAR (ريال سعودي)': (
-            (usd_egp / data.get('SAR', 3.75)) if data.get('SAR') else 0
-        ),
-        '🇦🇪 AED (درهم إماراتي)': (
-            (usd_egp / data.get('AED', 3.67)) if data.get('AED') else 0
-        ),
-        '🇰🇼 KWD (دينار كويتي)': (
-            (usd_egp / data.get('KWD', 0.30)) if data.get('KWD') else 0
-        ),
+        '🇺🇸 USD': usd_egp,
+        '🇪🇺 EUR': (usd_egp / data.get('EUR', 1.0)) if data.get('EUR') else 0,
+        '🇬🇧 GBP': (usd_egp / data.get('GBP', 1.0)) if data.get('GBP') else 0,
+        '🇸🇦 SAR': (usd_egp / data.get('SAR', 3.75)) if data.get('SAR') else 0,
+        '🇦🇪 AED': (usd_egp / data.get('AED', 3.67)) if data.get('AED') else 0,
+        '🇰🇼 KWD': (usd_egp / data.get('KWD', 0.30)) if data.get('KWD') else 0,
     }
     return currencies, usd_egp
   except Exception as e:
     print(f'⚠️ خطأ في جلب أسعار الصرف: {e}', flush=True)
-    return {'🇺🇸 USD (دولار أمريكي)': 48.5}, 48.5
+    return {'🇺🇸 USD': 48.5}, 48.5
 
 
 def fetch_technical_data(pair_symbol):
@@ -159,10 +148,7 @@ def fetch_technical_data(pair_symbol):
 # 6. الحلقة الرئيسية للبوت
 # ---------------------------------------------------------
 def main_loop():
-  print(
-      '🤖 بدأ تشغيل البوت وإرسال التقارير لـ الواتساب وتيليجرام...',
-      flush=True,
-  )
+  print('🤖 بدأ تشغيل البوت المزدوج (تيليجرام + واتساب)...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -175,15 +161,19 @@ def main_loop():
   while True:
     try:
       forex_rates, usd_egp = get_forex_rates()
+      current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
 
-      forex_msg = '💵 أسعار العملات الأجنبية بالجنيه المصري (EGP):\n'
+      # 1. بناء التقرير التفصيلي لتيليجرام
+      forex_msg_tg = '💵 أسعار العملات الأجنبية بالجنيه المصري (EGP):\n'
       for curr_name, rate in forex_rates.items():
-        forex_msg += f'• {curr_name}: {rate:,.2f} ج.م\n'
+        forex_msg_tg += f'• {curr_name}: {rate:,.2f} ج.م\n'
 
-      crypto_msg = (
-          '\n📊 التحليل الفني والقرارات الاستثمارية للعملات الرقمية:\n'
-      )
-      crypto_msg += '===================================\n'
+      crypto_msg_tg = '\n📊 التحليل الفني للعملات الرقمية:\n===================================\n'
+      
+      # 2. بناء التقرير المختصر السريع للواتساب
+      wa_msg = f"📊 *موجز السوق الذكي*\n⏱ {current_time_str}\n-----------------------------------\n"
+      wa_msg += f"💵 *الدولار:* {usd_egp:.2f} ج.م | *اليورو:* {forex_rates.get('🇪🇺 EUR', 0):.2f} ج.م\n"
+      wa_msg += f"🇸🇦 *الريال:* {forex_rates.get('🇸🇦 SAR', 0):.2f} ج.م | *الدرهم:* {forex_rates.get('🇦🇪 AED', 0):.2f} ج.م\n-----------------------------------\n🪙 *العملات الرقمية:*\n"
 
       for name, pair in crypto_pairs.items():
         cdata = fetch_technical_data(pair)
@@ -195,52 +185,51 @@ def main_loop():
           sma30 = cdata['SMA_30']
 
           if sma10 > sma30 and 30 < rsi < 70:
-            status_desc = (
-                '🟢 إشارة شراء (Buy)\n  الاتجاه صاعد ومؤشر RSI في منطقة استقرار'
-                ' آمنة.'
-            )
+            status_desc = '🟢 شراء (Buy)'
+            status_desc_tg = '🟢 إشارة شراء (Buy)\n  الاتجاه صاعد ومؤشر RSI في منطقة استقرار آمنة.'
           elif rsi >= 70:
-            status_desc = (
-                '⚠️ تنبيه تشبع شرائي (Overbought)\n  السعر مرتفع جداً، يُنصح'
-                ' بتجنب الشراء.'
-            )
+            status_desc = '⚠️ تشبع شرائي'
+            status_desc_tg = '⚠️ تنبيه تشبع شرائي (Overbought)\n  السعر مرتفع جداً، يُنصح بتجنب الشراء.'
           elif rsi <= 30:
-            status_desc = (
-                'ℹ️ تنبيه تشبع بيعي (Oversold)\n  السعر منخفض جداً، ترقب ارتداد'
-                ' صاعد محتمل.'
-            )
+            status_desc = 'ℹ️ تشبع بيعي'
+            status_desc_tg = 'ℹ️ تنبيه تشبع بيعي (Oversold)\n  السعر منخفض جداً، ترقب ارتداد صاعد محتمل.'
           elif sma10 < sma30:
-            status_desc = (
-                '🔴 إشارة بيع (Sell)\n  الاتجاه هابط والمتوسط السريع أدنى من'
-                ' البطيء.'
-            )
+            status_desc = '🔴 بيع (Sell)'
+            status_desc_tg = '🔴 إشارة بيع (Sell)\n  الاتجاه هابط والمتوسط السريع أدنى من البطيء.'
           else:
-            status_desc = '⚪ احتفاظ (Hold)\n  لا توجد إشارة اتجاه قوية واضحة.'
+            status_desc = '⚪ احتفاظ (Hold)'
+            status_desc_tg = '⚪ احتفاظ (Hold)\n  لا توجد إشارة اتجاه قوية واضحة.'
 
-          crypto_msg += (
+          # إضافة التفاصيل لتقرير تيليجرام
+          crypto_msg_tg += (
               f'🪙 {name}\n'
               f'• السعر: ${price_usd:,.2f} ({price_egp:,.0f} ج.م)\n'
               f'📈 المؤشرات الفنية:\n'
               f'  - المتوسط السريع (SMA 10): ${sma10:,.2f}\n'
               f'  - المتوسط البطيء (SMA 30): ${sma30:,.2f}\n'
               f'  - مؤشر القوة النسبية (RSI): {rsi:.1f}\n'
-              f'🚦 القرار الاستثماري:\n{status_desc}\n'
+              f'🚦 القرار الاستثماري:\n{status_desc_tg}\n'
               '-----------------------------------\n'
           )
+
+          # إضافة سطر ملخص لتقرير الواتساب
+          wa_msg += f"• *{name.split(' ')[0]}*: ${price_usd:,.2f} ({status_desc})\n"
+
         time.sleep(0.3)
 
-      current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
-      full_report = f"""📊 تقرير السوق الشامل والتحليل الكمي
+      full_tg_report = f"""📊 تقرير السوق الشامل والتحليل الكمي
 ⏱ التوقيت: {current_time_str}
 ===================================
-{forex_msg}===================================
-{crypto_msg}⚙️ إرسال تلقائي كل {INTERVAL_MINUTES} دقيقة عبر السحابة"""
+{forex_msg_tg}===================================
+{crypto_msg_tg}⚙️ إرسال تلقائي كل {INTERVAL_MINUTES} دقيقة عبر السحابة"""
 
-      # 1. إرسال إلى تيليجرام
-      send_telegram_message(full_report)
+      wa_msg += f"-----------------------------------\n⚙️ تحديث كل {INTERVAL_MINUTES} دقيقة"
 
-      # 2. إرسال إلى الواتساب
-      send_whatsapp_message(full_report)
+      # 1. إرسال التقرير التفصيلي لـ تيليجرام
+      send_telegram_message(full_tg_report)
+
+      # 2. إرسال الموجز السريع لـ الواتساب
+      send_whatsapp_message(wa_msg)
 
     except Exception as e:
       print(f'❌ خطأ في الحلقة الرئيسية: {e}', flush=True)

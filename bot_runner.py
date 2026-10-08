@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 
 # ---------------------------------------------------------
-# 1. خادم Flask لإعلام منصة Render أن الخدمة تعمل على المنفذ المطلوب
+# 1. خادم Flask لفتح المنفذ وتلبية شرط Render
 # ---------------------------------------------------------
 app = Flask('')
 
@@ -17,49 +17,48 @@ def home():
 
 
 def run_web_server():
-  # يقرأ المنفذ المخصص من Render تلقائياً
   port = int(os.environ.get('PORT', 10000))
   app.run(host='0.0.0.0', port=port)
 
 
 # ---------------------------------------------------------
-# 2. البيانات الثابتة والمتغيرات
+# 2. الثوابت والمتغيرات
 # ---------------------------------------------------------
-TELEGRAM_TOKEN = os.environ.get(
-    'TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4'
-)
-TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7727265173')
-COIN_ID = 'bitcoin'
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
 COIN_NAME = 'Bitcoin'
 INTERVAL_MINUTES = 15
 
 
 # ---------------------------------------------------------
-# 3. جلب وتحليل البيانات الفنية
+# 3. جلب البيانات عبر Coinbase API (مفتوح ولا يحظر Render)
 # ---------------------------------------------------------
-def fetch_technical_data(coin_id, days=30):
-  url = f'https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart'
-  params = {'vs_currency': 'usd', 'days': days}
-  headers = {
-      'User-Agent': (
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      )
-  }
+def fetch_technical_data():
+  # جلب الشموع اليابانية للإطار الزمني 15 دقيقة (900 ثانية)
+  url = 'https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=900'
+  headers = {'User-Agent': 'Mozilla/5.0'}
 
   try:
-    response = requests.get(url, params=params, headers=headers, timeout=10)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
-    prices = response.json().get('prices', [])
+    data = response.json()
 
-    if not prices:
+    if not data:
+      print('⚠️ لم يتم استرجاع بيانات من Coinbase', flush=True)
       return pd.DataFrame()
 
-    df = pd.DataFrame(prices, columns=['timestamp', 'Price'])
-    df['Date'] = pd.to_datetime(df['timestamp'], unit='ms')
+    # Coinbase ترجع ترتيب العناصر: [timestamp, low, high, open, close, volume]
+    df = pd.DataFrame(
+        data, columns=['timestamp', 'low', 'high', 'open', 'Price', 'volume']
+    )
+    df['Date'] = pd.to_datetime(df['timestamp'], unit='s')
+    df = df.sort_values('Date').reset_index(drop=True)
 
+    # المتوسطات المتحركة
     df['SMA_10'] = df['Price'].rolling(window=10).mean()
     df['SMA_30'] = df['Price'].rolling(window=30).mean()
 
+    # حساب RSI بالنعومة الأسية الاحترافية
     delta = df['Price'].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
@@ -71,7 +70,7 @@ def fetch_technical_data(coin_id, days=30):
 
     return df.dropna()
   except Exception as e:
-    print(f'❌ خطأ في جلب البيانات: {e}')
+    print(f'❌ خطأ في جلب البيانات من Coinbase: {e}', flush=True)
     return pd.DataFrame()
 
 
@@ -79,6 +78,10 @@ def fetch_technical_data(coin_id, days=30):
 # 4. إرسال الرسائل عبر تيليجرام
 # ---------------------------------------------------------
 def send_telegram_message(message):
+  if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+    print('⚠️ متغيرات البيئة للتيليجرام غير مضبوطة بشكل صحيح!', flush=True)
+    return False
+
   url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
   payload = {
       'chat_id': TELEGRAM_CHAT_ID,
@@ -87,20 +90,31 @@ def send_telegram_message(message):
   }
   try:
     response = requests.post(url, json=payload, timeout=10)
-    return response.status_code == 200
+    if response.status_code == 200:
+      print('✅ تم إرسال التقرير إلى تيليجرام بنجاح!', flush=True)
+      return True
+    else:
+      print(f'❌ فشل إرسال تيليجرام: {response.text}', flush=True)
+      return False
   except Exception as e:
-    print(f'❌ خطأ في إرسال التيليجرام: {e}')
+    print(f'❌ خطأ في الاتصال بتيليجرام: {e}', flush=True)
     return False
 
 
 # ---------------------------------------------------------
-# 5. حلقة التداول والتحليل الرئيسية
+# 5. الحلقة الرئيسية
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت التحليل الفني بنجاح...')
+  print('🤖 بدأ تشغيل البوت مع Coinbase API...', flush=True)
+
+  # إرسال تنبيه تأكيد فوري عند بداية تشغيل السيرفر
+  send_telegram_message(
+      '🚀 *تم تحديث البوت والربط مع Coinbase API بنجاح! جاري التوصيل...*'
+  )
+
   while True:
     try:
-      df_tech = fetch_technical_data(COIN_ID, days=30)
+      df_tech = fetch_technical_data()
       if not df_tech.empty:
         last_row = df_tech.iloc[-1]
         current_price = last_row['Price']
@@ -153,8 +167,12 @@ def main_loop():
         send_telegram_message(msg)
 
     except Exception as e:
-      print(f'❌ خطأ في الحلقة الرئيسية: {e}')
+      print(f'❌ خطأ في الحلقة الرئيسية: {e}', flush=True)
 
+    print(
+        f'😴 جاري الانتظار {INTERVAL_MINUTES} دقيقة حتى التقرير القادم...',
+        flush=True,
+    )
     time.sleep(INTERVAL_MINUTES * 60)
 
 
@@ -162,10 +180,8 @@ def main_loop():
 # 6. نقطة الانطلاق
 # ---------------------------------------------------------
 if __name__ == '__main__':
-  # تشغيل خادم Flask أولاً فوراً حتى يكتشف Render المنفذ (Port)
   web_thread = Thread(target=run_web_server)
   web_thread.daemon = True
   web_thread.start()
 
-  # تشغيل البوت
   main_loop()

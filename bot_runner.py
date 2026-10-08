@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from threading import Thread
 import urllib.parse
@@ -15,7 +16,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-  return '🤖 Live Financial Market & Analytics Bot is running!'
+  return '🤖 Realtime Financial & Official Economic Data Bot is running!'
 
 
 def run_web_server():
@@ -117,78 +118,36 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 5. جلب أسعار المعادن والعملات والسيارات المباشرة
+# 5. البيانات الكلية الرسمية (البنك المركزي + CAPMAS + صندوق النقد)
 # ---------------------------------------------------------
-def get_live_forex_and_metals():
-  try:
-    # 1. أسعار العملات المباشرة
-    url = 'https://open.er-api.com/v6/latest/USD'
-    res = requests.get(url, timeout=5)
-    rates = res.json().get('rates', {})
-    usd_egp = rates.get('EGP', 48.5)
-
-    forex = {
-        'USD': usd_egp,
-        'EUR': (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0,
-        'GBP': (usd_egp / rates.get('GBP', 1.0)) if rates.get('GBP') else 0,
-        'SAR': (usd_egp / rates.get('SAR', 3.75)) if rates.get('SAR') else 0,
-        'AED': (usd_egp / rates.get('AED', 3.67)) if rates.get('AED') else 0,
-        'KWD': (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0,
-    }
-
-    # 2. سعر أونصة الذهب المباشر (عبر Binance PAXG 1:1)
-    try:
-      r_gold = requests.get(
-          'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
-          timeout=5,
-      )
-      gold_oz_usd = float(r_gold.json().get('price', 2650.0))
-    except:
-      gold_oz_usd = 2650.0
-
-    # 3. سعر أونصة الفضة المباشر (Coinbase XAG)
-    try:
-      r_silver = requests.get(
-          'https://api.exchange.coinbase.com/products/XAG-USD/ticker', timeout=5
-      )
-      silver_oz_usd = float(r_silver.json().get('price', 31.5))
-    except:
-      silver_oz_usd = 31.5
-
-    platinum_oz_usd = gold_oz_usd * 0.37
-    palladium_oz_usd = gold_oz_usd * 0.39
-
-    gold_gram_24 = (gold_oz_usd / 31.1035) * usd_egp
-
-    metals = {
-        'الذهب (24)': gold_gram_24,
-        'الذهب (21)': gold_gram_24 * (21 / 24),
-        'الذهب (18)': gold_gram_24 * (18 / 24),
-        'الجنيه الذهب': (gold_gram_24 * (21 / 24)) * 8,
-        'الفضة (999)': (silver_oz_usd / 31.1035) * usd_egp,
-        'الفضة (925)': ((silver_oz_usd / 31.1035) * usd_egp) * 0.925,
-        'البلاتين (أونصة)': platinum_oz_usd * usd_egp,
-        'البالاديوم (أونصة)': palladium_oz_usd * usd_egp,
-    }
-
-    return forex, metals, usd_egp, gold_oz_usd
-  except Exception as e:
-    print(f'⚠️ خطأ جلب البيانات المالية: {e}', flush=True)
-    return {'USD': 48.5}, {}, 48.5, 2650.0
+def get_egypt_macro_indicators():
+  return {
+      'سعر الفائدة الرئيسي (البنك المركزي CBE)': '19.50%',
+      'سعر فائدة الإقراض لليلة واحدة (CBE)': '20.00%',
+      'سعر فائدة الإيداع لليلة واحدة (CBE)': '18.50%',
+      'معدل التضخم السنوي (CAPMAS / CBE)': '14.5%',
+      'معدل التضخم الأساسي السنوي (CBE)': '14.9%',
+      'معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)': '6.0%',
+      'توقعات نمو الاقتصاد (صندوق النقد الدولي IMF)': '4.7% - 5.1%',
+      'إجمالي المعروض النقدي والسيولة المحلية (M2)': '15.66 تريليون ج.م',
+      'السيولة والودائع بالجهاز المصرفي': '27.49 تريليون ج.م',
+      'احتياطي النقد الأجنبي المباشر (CBE)': '57.34 مليار دولار',
+      'عدد السكان الرسمي بالداخل (CAPMAS)': '107.5 مليون نسمة',
+  }
 
 
-def fetch_live_news_rss():
-  """جلب أحدث عناوين الأخبار المباشرة لحظياً عبر Google News RSS"""
+def fetch_live_arabic_news():
+  """جلب أحدث الأخبار الاقتصادية باللغة العربية بالكامل عبر خلاصات Google News"""
   news_data = {}
   sources = {
-      '🇺🇸 أمريكا والفيدرالي': (
-          'https://news.google.com/rss/search?q=US+Federal+Reserve+economy&hl=en-US&gl=US&ceid=US:en'
+      '🇺🇸 الاقتصاد الأمريكي والسياسة النقدية': (
+          'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar'
       ),
-      '🇪🇺 أوروبا وروسيا': (
-          'https://news.google.com/rss/search?q=European+Central+Bank+Russia+economy&hl=en-US&gl=US&ceid=US:en'
+      '🇪🇺 أوروبا وروسيا والطاقة': (
+          'https://news.google.com/rss/search?q=المركزي+الأوروبي+روسيا+تضخم&hl=ar&gl=EG&ceid=EG:ar'
       ),
-      '🇨🇳 🇯🇵 آسيا': (
-          'https://news.google.com/rss/search?q=China+Japan+economy+markets&hl=en-US&gl=US&ceid=US:en'
+      '🇨🇳 🇯🇵 أسواق آسيا والصين': (
+          'https://news.google.com/rss/search?q=اقتصاد+الصين+اليابان+أسواق&hl=ar&gl=EG&ceid=EG:ar'
       ),
       '🌍 الشرق الأوسط ومصر': (
           'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar'
@@ -208,30 +167,109 @@ def fetch_live_news_rss():
       news_data[region] = (
           headlines
           if headlines
-          else ['متابعة التحركات الاقتصادية المباشرة في الأسواق.']
+          else ['متابعة تحركات الأسواق العالمية والمحلية مباشرة.']
       )
     except Exception:
-      news_data[region] = ['تغطية إخبارية مباشرة لحظية من البورصات العالمية.']
+      news_data[region] = ['تغطية إخبارية اقتصادية مستمرة باللغة العربية.']
   return news_data
 
 
-def get_egypt_macro_indicators():
+# ---------------------------------------------------------
+# 6. جلب أسعار العملات والمعادن والسيارات
+# ---------------------------------------------------------
+def fetch_egypt_local_gold_prices(usd_egp, gold_oz_usd):
+  headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+
+  try:
+    url = 'https://api.gold-era.com/api/prices/gold'
+    res = requests.get(url, headers=headers, timeout=5)
+    if res.status_code == 200:
+      data = res.json()
+      g21 = float(data.get('gram21', 0))
+      g24 = float(data.get('gram24', 0))
+      if g21 > 2000:
+        return {
+            'الذهب (24)': g24 if g24 > 0 else g21 * (24 / 21),
+            'الذهب (21)': g21,
+            'الذهب (18)': g21 * (18 / 21),
+            'الجنيه الذهب': g21 * 8,
+        }
+  except Exception:
+    pass
+
+  try:
+    url = 'https://www.goldpriceegypt.com/'
+    res = requests.get(url, headers=headers, timeout=5)
+    if res.status_code == 200:
+      match_21 = re.search(r'عيار 21.*?(\d[\d,]{3,})', res.text)
+      if match_21:
+        g21 = float(match_21.group(1).replace(',', ''))
+        if g21 > 2000:
+          return {
+              'الذهب (24)': g21 * (24 / 21),
+              'الذهب (21)': g21,
+              'الذهب (18)': g21 * (18 / 21),
+              'الجنيه الذهب': g21 * 8,
+          }
+  except Exception:
+    pass
+
+  g24_est = (gold_oz_usd / 31.1035) * usd_egp
   return {
-      'سعر فائدة الإيداع (البنك المركزي CBE)': '27.25%',
-      'سعر فائدة الإقراض (البنك المركزي CBE)': '28.25%',
-      'معدل التضخم السنوي (حسب البنك المركزي)': '25.6%',
-      'معدل البطالة (حسب الجهاز المركزي للإحصاء CAPMAS)': '6.7%',
-      'عدد السكان بالداخل': '107.5 مليون نسمة',
-      'السيولة النقدية لدى الأفراد (النقد خارج البنوك)': '1.22 تريليون ج.م',
-      'إجمالي المعروض النقدي والسيولة المحلية (M2)': '10.85 تريليون ج.م',
-      'حجم الودائع والسيولة بالقطاع المصرفي': '12.10 تريليون ج.م',
-      'إجمالي أصول الجهاز المصرفي المصري': '18.40 تريليون ج.م',
+      'الذهب (24)': g24_est,
+      'الذهب (21)': g24_est * (21 / 24),
+      'الذهب (18)': g24_est * (18 / 24),
+      'الجنيه الذهب': (g24_est * (21 / 24)) * 8,
   }
 
 
+def get_live_forex_and_metals():
+  try:
+    url = 'https://open.er-api.com/v6/latest/USD'
+    res = requests.get(url, timeout=5)
+    rates = res.json().get('rates', {})
+    usd_egp = rates.get('EGP', 47.4)
+
+    forex = {
+        'USD': usd_egp,
+        'EUR': (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0,
+        'GBP': (usd_egp / rates.get('GBP', 1.0)) if rates.get('GBP') else 0,
+        'SAR': (usd_egp / rates.get('SAR', 3.75)) if rates.get('SAR') else 0,
+        'AED': (usd_egp / rates.get('AED', 3.67)) if rates.get('AED') else 0,
+        'KWD': (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0,
+    }
+
+    try:
+      r_gold = requests.get(
+          'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
+          timeout=5,
+      )
+      gold_oz_usd = float(r_gold.json().get('price', 2650.0))
+    except Exception:
+      gold_oz_usd = 2650.0
+
+    try:
+      r_silver = requests.get(
+          'https://api.exchange.coinbase.com/products/XAG-USD/ticker', timeout=5
+      )
+      silver_oz_usd = float(r_silver.json().get('price', 31.5))
+    except Exception:
+      silver_oz_usd = 31.5
+
+    metals = fetch_egypt_local_gold_prices(usd_egp, gold_oz_usd)
+    metals['الفضة (999)'] = (silver_oz_usd / 31.1035) * usd_egp
+    metals['الفضة (925)'] = ((silver_oz_usd / 31.1035) * usd_egp) * 0.925
+    metals['البلاتين (أونصة)'] = gold_oz_usd * 0.37 * usd_egp
+    metals['البالاديوم (أونصة)'] = gold_oz_usd * 0.39 * usd_egp
+
+    return forex, metals, usd_egp, gold_oz_usd
+  except Exception as e:
+    print(f'⚠️ خطأ جلب البيانات المالية: {e}', flush=True)
+    return {'USD': 47.4}, {}, 47.4, 2650.0
+
+
 def get_dynamic_auto_market(usd_egp):
-  # تم ربط أسعار السيارات التقديرية بالمعادل اللحظي لحركة سعر الدولار
-  factor = usd_egp / 48.5
+  factor = usd_egp / 47.4
   cars = {
       '🚗 اقتصادية': {
           'نيسان صني': f'{int(695000*factor):,} - {int(750000*factor):,} ج.م',
@@ -305,10 +343,13 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 6. الحلقة الرئيسية والجدولة
+# 7. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت المحدث بالنشرات والأسعار الحية...', flush=True)
+  print(
+      '🤖 بدأ تشغيل البوت المحدث بالمؤشرات الرسمية والأخبار العربية...',
+      flush=True,
+  )
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -394,29 +435,27 @@ def main_loop():
         for curr_name, rate in forex_rates.items():
           forex_msg_tg += f'• {curr_name}: {rate:,.2f} ج.م\n'
 
-        macro_tg = '\n🇪🇬 مؤشرات الاقتصاد المصري الكلي والفائدة:\n'
+        macro_tg = '\n🇪🇬 بيانات البنك المركزي وCAPMAS والنمو (IMF):\n'
         macro_tg += (
-            f"• فائدة الإيداع:"
-            f" {egypt_macro.get('سعر فائدة الإيداع (البنك المركزي CBE)')} |"
-            f" الإقراض:"
-            f" {egypt_macro.get('سعر فائدة الإقراض (البنك المركزي CBE)')}\n"
+            f"• الفائدة الرئيسية (CBE):"
+            f" {egypt_macro.get('سعر الفائدة الرئيسي (البنك المركزي CBE)')}\n"
         )
         macro_tg += (
-            f"• التضخم:"
-            f" {egypt_macro.get('معدل التضخم السنوي (حسب البنك المركزي)')} |"
+            f"• التضخم السنوي:"
+            f" {egypt_macro.get('معدل التضخم السنوي (CAPMAS / CBE)')} |"
             f" البطالة:"
-            f" {egypt_macro.get('معدل البطالة (حسب الجهاز المركزي للإحصاء CAPMAS)')}\n"
+            f" {egypt_macro.get('معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)')}\n"
         )
         macro_tg += (
-            f"• سيولة الأفراد:"
-            f" {egypt_macro.get('السيولة النقدية لدى الأفراد (النقد خارج البنوك)')}\n"
+            f"• توقعات النمو (IMF):"
+            f" {egypt_macro.get('توقعات نمو الاقتصاد (صندوق النقد الدولي IMF)')}\n"
         )
         macro_tg += (
-            f"• سيولة البنوك:"
-            f" {egypt_macro.get('حجم الودائع والسيولة بالقطاع المصرفي')}\n"
+            f"• الاحتياطي النقدي:"
+            f" {egypt_macro.get('احتياطي النقد الأجنبي المباشر (CBE)')}\n"
         )
 
-        full_tg_report = f"""📊 تقرير السوق الشامل والتحليل الكمي المباشر (كل 6 ساعات)
+        full_tg_report = f"""📊 تقرير السوق الشامل والمؤشرات الرسمية (كل 6 ساعات)
 ⏱ التوقيت: {current_time_str}
 ===================================
 {forex_msg_tg}{macro_tg}===================================
@@ -431,7 +470,7 @@ def main_loop():
           or last_whatsapp_time == 0
       ):
         wa_msg = (
-            f'📊 *تقرير السوق التفصيلي الحكي*\n⏱'
+            f'📊 *تقرير السوق والمؤشرات الرسمية*\n⏱'
             f' {current_time_str}\n-----------------------------------\n💵'
             f' *أسعار العملات (EGP):*\n• USD: {usd_egp:.2f} | EUR:'
             f" {forex_rates.get('EUR', 0):.2f}\n• GBP:"
@@ -439,19 +478,18 @@ def main_loop():
             f" {forex_rates.get('SAR', 0):.2f}\n• AED:"
             f" {forex_rates.get('AED', 0):.2f} | KWD:"
             f" {forex_rates.get('KWD', 0):.2f}\n-----------------------------------\n🇪🇬"
-            ' *مؤشرات مصر بالفائدة:*\n• فائدة الإيداع:'
-            f" {egypt_macro.get('سعر فائدة الإيداع (البنك المركزي CBE)')} |"
-            ' الإقراض:'
-            f" {egypt_macro.get('سعر فائدة الإقراض (البنك المركزي CBE)')}\n•"
-            ' التضخم:'
-            f" {egypt_macro.get('معدل التضخم السنوي (حسب البنك المركزي)')} |"
+            ' *بيانات CBE / CAPMAS / IMF:*\n• الفائدة الرئيسية:'
+            f" {egypt_macro.get('سعر الفائدة الرئيسي (البنك المركزي CBE)')}\n•"
+            ' التضخم السنوي:'
+            f" {egypt_macro.get('معدل التضخم السنوي (CAPMAS / CBE)')} |"
             ' البطالة:'
-            f" {egypt_macro.get('معدل البطالة (حسب الجهاز المركزي للإحصاء CAPMAS)')}\n•"
-            ' سيولة البنوك:'
-            f" {egypt_macro.get('حجم الودائع والسيولة بالقطاع المصرفي')}\n-----------------------------------\n👑"
-            ' *أسعار المعادن الحية (الجرام):*\n• الذهب (21):'
+            f" {egypt_macro.get('معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)')}\n•"
+            ' نمو IMF:'
+            f" {egypt_macro.get('توقعات نمو الاقتصاد (صندوق النقد الدولي IMF)')}\n-----------------------------------\n👑"
+            ' *أسعار الصاغة المصرية (الجرام):*\n• الذهب (21):'
             f" {metals.get('الذهب (21)', 0):,.0f} ج.م\n• الذهب (24):"
-            f" {metals.get('الذهب (24)', 0):,.0f} ج.م\n• الفضة (999):"
+            f" {metals.get('الذهب (24)', 0):,.0f} ج.م\n• الجنيه الذهب:"
+            f" {metals.get('الجنيه الذهب', 0):,.0f} ج.م\n• الفضة (999):"
             f" {metals.get('الفضة (999)', 0):,.2f}"
             ' ج.م\n-----------------------------------\n🪙 *تحليل العملات'
             f' الرقمية:*\n{wa_crypto_details}-----------------------------------\n⚙️'
@@ -466,11 +504,11 @@ def main_loop():
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
       ):
-        live_news = fetch_live_news_rss()
+        arabic_news = fetch_live_arabic_news()
         auto_data = get_dynamic_auto_market(usd_egp)
 
         news_str = ''
-        for region, headlines in live_news.items():
+        for region, headlines in arabic_news.items():
           news_str += f'\n{region}:\n'
           for h in headlines:
             news_str += f'  • {h}\n'
@@ -486,15 +524,15 @@ def main_loop():
           for model_name, price_range in models.items():
             auto_str += f'  • {model_name}: {price_range}\n'
 
-        email_report = f"""📊 التقرير المالي والإقتصادي الشامل والحي (Live API)
+        email_report = f"""📊 التقرير المالي والإقتصادي الرسمي والشامل
 ⏱ التوقيت: {current_time_str}
 المستلم: {RECEIVER_EMAIL}
 ==================================================
 
-1️⃣ النشرة الاقتصادية العاجلة (تحديث حي لحظة الإرسال):
+1️⃣ النشرة الاقتصادية العاجلة (باللغة العربية بالكامل):
 --------------------------------------------------{news_str}
 
-2️⃣ المؤشرات الاقتصادية الكلية ومعدلات الفائدة لجمهورية مصر العربية:
+2️⃣ المؤشرات الاقتصادية الكلية (البنك المركزي + CAPMAS + صندوق النقد الدولي):
 --------------------------------------------------
 {macro_str}
 
@@ -507,7 +545,7 @@ def main_loop():
 • AED (درهم إماراتي): {forex_rates.get('AED', 0):.2f} ج.م
 • KWD (دينار كويتي): {forex_rates.get('KWD', 0):.2f} ج.م
 
-4️⃣ بورصة المعادن النفيسة الحية (الأونصة العالمية: ${gold_oz:,.2f}):
+4️⃣ بورصة الصاغة المصرية والمعادن (الأونصة العالمية: ${gold_oz:,.2f}):
 --------------------------------------------------
 {metals_str}
 
@@ -519,10 +557,10 @@ def main_loop():
 --------------------------------------------------{auto_str}
 
 ==================================================
-⚙️ يُولد هذا التقرير التفصيلي والحي تلقائياً كل 3 ساعات عبر السحابة.
+⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة.
 """
         email_subject = (
-            f'📈 التقرير المالي المباشر والحي - {current_time_str}'
+            f'📈 التقرير المالي والإقتصادي الشامل - {current_time_str}'
         )
 
         if send_email_report(email_subject, email_report):
@@ -535,7 +573,7 @@ def main_loop():
 
 
 # ---------------------------------------------------------
-# 7. نقطة الانطلاق
+# 8. نقطة الانطلاق
 # ---------------------------------------------------------
 if __name__ == '__main__':
   web_thread = Thread(target=run_web_server)

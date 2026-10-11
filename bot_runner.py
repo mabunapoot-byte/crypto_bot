@@ -16,7 +16,9 @@ app = Flask('')
 
 @app.route('/')
 def home():
-  return '🤖 InfoPulse - Complete Combined Economic Bot (Egypt & Oman) is running!'
+  return (
+      '🤖 InfoPulse - Complete Combined Economic Bot (Egypt & Oman) is running!'
+  )
 
 
 def run_web_server():
@@ -133,10 +135,8 @@ def fetch_all_merged_news():
   headers = {
       'User-Agent': (
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          ' (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       )
   }
-
   merged_items = []
 
   for url in sources:
@@ -214,7 +214,6 @@ def get_live_forex_and_commodities_full():
     usd_egp = rates.get('EGP', 47.4)
     usd_omr = rates.get('OMR', 0.3845)
 
-    # 1. أسعار العملات
     forex_egp = {
         'USD (دولار أمريكي)': usd_egp,
         'EUR (يورو أوروبي)': (
@@ -259,7 +258,6 @@ def get_live_forex_and_commodities_full():
         ),
     }
 
-    # الأونصة والفضة
     try:
       r_gold = requests.get(
           'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
@@ -277,7 +275,6 @@ def get_live_forex_and_commodities_full():
     except Exception:
       silver_oz_usd = 31.5
 
-    # 2. المعادن الكاملة - مصر (ج.م)
     g21_egp = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
     g24_egp = g21_egp * (24 / 21)
     silver_999_egp = (silver_oz_usd / 31.1035) * usd_egp
@@ -301,7 +298,6 @@ def get_live_forex_and_commodities_full():
         'النحاس الصناعي (طن)': 9500.0 * usd_egp,
     }
 
-    # 3. المعادن الكاملة - سلطنة عمان (ر.ع.)
     g24_omr = (gold_oz_usd / 31.1035) * usd_omr
     g21_omr = g24_omr * (21 / 24)
     silver_999_omr = (silver_oz_usd / 31.1035) * usd_omr
@@ -655,7 +651,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد التقرير المدمج الكامل باللوجوهات والتصنيف القديم
+# 8. توليد التقرير المدمج بطريقة الاستبدال الآمن للـ HTML
 # ---------------------------------------------------------
 def generate_complete_infopulse_html(
     current_time_str,
@@ -684,7 +680,7 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 2. جدول أسعار العملات
+  # 2. أسعار العملات
   forex_combined_rows = ''
   for k in forex_egp.keys():
     v_egp = forex_egp.get(k, 0)
@@ -697,16 +693,14 @@ def generate_complete_infopulse_html(
         </tr>
     """
 
-  # 3. جدول المعادن والسلع بالكامل (التصنيف القديم الشامل)
+  # 3. المعادن والسلع بالكامل (التصنيف الشامل)
   commodities_rows = ''
   for k in commodities_egp.keys():
     cg_egp = commodities_egp.get(k, 0)
     cg_omr = commodities_omr.get(k, 0)
-    
-    unit_egp = "ج.م"
-    unit_omr = "ر.ع."
-    fmt_egp = f"{cg_egp:,.2f} {unit_egp}" if cg_egp else "-"
-    fmt_omr = f"{cg_omr:,.3f} {unit_omr}" if cg_omr else "-"
+
+    fmt_egp = f'{cg_egp:,.2f} ج.م' if cg_egp else '-'
+    fmt_omr = f'{cg_omr:,.3f} ر.ع.' if cg_omr else '-'
 
     commodities_rows += f"""
         <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -733,7 +727,7 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 5. أسعار السيارات مع لوجو الشركات الصانعة
+  # 5. أسعار السيارات مع اللوجو
   cars_html = """
     <div style="display: flex; gap: 12px; flex-wrap: wrap; direction: rtl;">
         <div style="flex: 1; min-width: 270px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
@@ -769,7 +763,7 @@ def generate_complete_infopulse_html(
     """
   cars_html += '</ul></div></div>'
 
-  # 6. المؤشرات الاقتصادية الكلية الكاملة (التصنيف القديم الشامل)
+  # 6. المؤشرات الاقتصادية
   macro_html = """
     <div style="display: flex; gap: 12px; flex-wrap: wrap; direction: rtl;">
         <div style="flex: 1; min-width: 270px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
@@ -789,74 +783,279 @@ def generate_complete_infopulse_html(
     macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:#475569;">{k}</td><td style="padding:6px 0; font-weight:700; color:#0284c7; text-align:left;">{v}</td></tr>'
   macro_html += '</table></div></div>'
 
-  html_template = f"""
-    <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 18px 8px; text-align: right; direction: rtl; }}
-            .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; direction: rtl; }}
-            
-            .header {{ 
-                position: relative; 
-                background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); 
-                color: #ffffff; 
-                padding: 30px 20px 24px 20px; 
-                text-align: center; 
-                border-bottom: 4px solid #10b981; 
-                overflow: hidden; 
-            }}
-            .header-watermark {{
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 100%;
-                height: 100%;
-                opacity: 0.12;
-                pointer-events: none;
-                z-index: 1;
-            }}
-            .header-content {{ position: relative; z-index: 2; }}
-            
-            .content {{ padding: 22px 18px; text-align: right; direction: rtl; }}
-            .section-title {{ font-size: 15.5px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 5px; margin-top: 22px; margin-bottom: 12px; font-weight: 700; text-align: right; }}
-            .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12.5px; text-align: right; direction: rtl; }}
-            .ta-box {{ background-color: #ecfdf5; border-right: 4px solid #10b981; padding: 9px 12px; font-size: 12px; color: #047857; margin-bottom: 12px; border-radius: 6px; font-weight: 500; line-height: 1.5; }}
-            .footer {{ background-color: #f8fafc; padding: 15px; text-align: center; font-size: 11.5px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }}
-        </style>
-    </head>
-    <body dir="rtl">
-        <div class="container" dir="rtl">
-            <div class="header">
-                <!-- خلفية مائية لشعار InfoPulse -->
-                <div class="header-watermark">
-                    <svg viewBox="0 0 500 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M-20 100 H120 L150 40 L180 160 L210 10 L240 140 L270 60 L300 100 H520" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <circle cx="150" cy="40" r="9" fill="#10b981"/>
-                        <circle cx="210" cy="10" r="9" fill="#10b981"/>
-                        <circle cx="240" cy="140" r="9" fill="#38bdf8"/>
-                        <path d="M300 100 L460 20 M300 100 L460 60 M300 100 L460 140 M360 70 V120 M420 40 V150" stroke="#ffffff" stroke-width="4" stroke-opacity="0.8"/>
+  # استخدام الهيكل الآمن لمنع أي تعارض في الأقواس لغوياً
+  html_template = """<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 18px 8px; text-align: right; direction: rtl; }
+        .container { max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; direction: rtl; }
+        .header { position: relative; background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 30px 20px 24px 20px; text-align: center; border-bottom: 4px solid #10b981; overflow: hidden; }
+        .header-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; opacity: 0.12; pointer-events: none; z-index: 1; }
+        .header-content { position: relative; z-index: 2; }
+        .content { padding: 22px 18px; text-align: right; direction: rtl; }
+        .section-title { font-size: 15.5px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 5px; margin-top: 22px; margin-bottom: 12px; font-weight: 700; text-align: right; }
+        .table-styled { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12.5px; text-align: right; direction: rtl; }
+        .ta-box { background-color: #ecfdf5; border-right: 4px solid #10b981; padding: 9px 12px; font-size: 12px; color: #047857; margin-bottom: 12px; border-radius: 6px; font-weight: 500; line-height: 1.5; }
+        .footer { background-color: #f8fafc; padding: 15px; text-align: center; font-size: 11.5px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }
+    </style>
+</head>
+<body dir="rtl">
+    <div class="container" dir="rtl">
+        <div class="header">
+            <div class="header-watermark">
+                <svg viewBox="0 0 500 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M-20 100 H120 L150 40 L180 160 L210 10 L240 140 L270 60 L300 100 H520" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <circle cx="150" cy="40" r="9" fill="#10b981"/>
+                    <circle cx="210" cy="10" r="9" fill="#10b981"/>
+                    <circle cx="240" cy="140" r="9" fill="#38bdf8"/>
+                    <path d="M300 100 L460 20 M300 100 L460 60 M300 100 L460 140 M360 70 V120 M420 40 V150" stroke="#ffffff" stroke-width="4" stroke-opacity="0.8"/>
+                </svg>
+            </div>
+            <div class="header-content">
+                <div style="margin-bottom: 6px; text-align: center;">
+                    <svg width="220" height="70" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 220px; height: auto;">
+                        <path d="M10 45 H40 L55 20 L70 70 L85 8 L100 60 L115 30 L130 45 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="55" cy="20" r="4" fill="#10b981"/>
+                        <circle cx="85" cy="8" r="4" fill="#10b981"/>
+                        <circle cx="100" cy="60" r="4" fill="#38bdf8"/>
+                        <path d="M130 45 L190 12 M130 45 L190 28 M130 45 L190 62 M150 34 V52 M170 22 V58" stroke="#ffffff" stroke-width="2" stroke-opacity="0.85"/>
+                        <text x="10" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="800" fill="#ffffff">Info<tspan fill="#10b981">Pulse</tspan></text>
+                        <text x="160" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
                     </svg>
                 </div>
-
-                <div class="header-content">
-                    <div style="margin-bottom: 6px; text-align: center;">
-                        <svg width="220" height="70" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 220px; height: auto;">
-                            <path d="M10 45 H40 L55 20 L70 70 L85 8 L100 60 L115 30 L130 45 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="55" cy="20" r="4" fill="#10b981"/>
-                            <circle cx="85" cy="8" r="4" fill="#10b981"/>
-                            <circle cx="100" cy="60" r="4" fill="#38bdf8"/>
-                            <path d="M130 45 L190 12 M130 45 L190 28 M130 45 L190 62 M150 34 V52 M170 22 V58" stroke="#ffffff" stroke-width="2" stroke-opacity="0.85"/>
-                            <text x="10" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="800" fill="#ffffff">Info<tspan fill="#10b981">Pulse</tspan></text>
-                            <text x="160" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
-                        </svg>
-                    </div>
-                    <h2 style="margin:4px 0 0 0; font-size:19px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
-                    <p style="margin:4px 0 0 0; font-size:12.5px; color:#a7f3d0; font-weight:500;">🇪🇬 جمهورية مصر العربية &bull; 🇴🇲 سلطنة عمان</p>
-                    <p style="margin:4px 0 0 0; font-size:11.5px; color:#94a3b8;">⏱ {current_time_str}</p>
-                </div>
+                <h2 style="margin:4px 0 0 0; font-size:19px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
+                <p style="margin:4px 0 0 0; font-size:12.5px; color:#a7f3d0; font-weight:500;">🇪🇬 جمهورية مصر العربية &bull; 🇴🇲 سلطنة عمان</p>
+                <p style="margin:4px 0 0 0; font-size:11.5px; color:#94a3b8;">⏱ __TIME_STR__</p>
             </div>
-            
+        </div>
+        
+        <div class="content" dir="rtl">
+            <div class="section-title">1️⃣ أهم الأخبار الاقتصادية العامة</div>
+            __NEWS_HTML__
+
+            <div class="section-title">2️⃣ أسعار العملات (مصر 🇪🇬 vs سلطنة عمان 🇴🇲)</div>
+            <div class="ta-box">__TA_SUMMARY__</div>
+            <table class="table-styled" dir="rtl">
+                <thead>
+                    <tr style="background-color: #f8fafc; color: #475569; font-size: 12px;">
+                        <th style="padding: 8px 10px; text-align: right;">العملة</th>
+                        <th style="padding: 8px 10px; text-align: center;">مصر (ج.م)</th>
+                        <th style="padding: 8px 10px; text-align: center;">عمان (ر.ع.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    __FOREX_ROWS__
+                </tbody>
+            </table>
+
+            <div class="section-title">3️⃣ أسعار المعادن والسلع الكاملة (السوق المحلي)</div>
+            <table class="table-styled" dir="rtl">
+                <thead>
+                    <tr style="background-color: #f8fafc; color: #475569; font-size: 12px;">
+                        <th style="padding: 8px 10px; text-align: right;">الصنف / المعدن</th>
+                        <th style="padding: 8px 10px; text-align: center;">مصر (ج.م)</th>
+                        <th style="padding: 8px 10px; text-align: center;">عمان (ر.ع.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    __COMMODITIES_ROWS__
+                </tbody>
+            </table>
+
+            <div class="section-title">4️⃣ التحليل الفني للعملات الرقمية</div>
+            __CRYPTO_HTML__
+
+            <div class="section-title">5️⃣ دليل أسعار السيارات (مع لوجو الشركات الصانعة)</div>
+            __CARS_HTML__
+
+            <div class="section-title">6️⃣ المؤشرات الاقتصادية الرسمية الشاملة</div>
+            __MACRO_HTML__
+        </div>
+
+        <div class="footer">
+            ⚙️ يُولد هذا التقرير المالي الشامل تلقائياً بواسطة <b>InfoPulse | إنفوبلس</b><br>
+            جميع الحقوق محفوظة &copy; 2026
+        </div>
+    </div>
+</body>
+</html>"""
+
+  html = (
+      html_template.replace('__TIME_STR__', current_time_str)
+      .replace('__NEWS_HTML__', news_html)
+      .replace('__TA_SUMMARY__', ta_summary)
+      .replace('__FOREX_ROWS__', forex_combined_rows)
+      .replace('__COMMODITIES_ROWS__', commodities_rows)
+      .replace('__CRYPTO_HTML__', crypto_html)
+      .replace('__CARS_HTML__', cars_html)
+      .replace('__MACRO_HTML__', macro_html)
+  )
+  return html
+
+
+# ---------------------------------------------------------
+# 9. الحلقة الرئيسية والجدولة
+# ---------------------------------------------------------
+def main_loop():
+  print('🤖 بدأ تشغيل بوت InfoPulse المدمج بالكامل بالنسخة المصلحة...', flush=True)
+
+  crypto_pairs = {
+      'Bitcoin (BTC)': 'BTC-USD',
+      'Ethereum (ETH)': 'ETH-USD',
+      'Solana (SOL)': 'SOL-USD',
+      'Ripple (XRP)': 'XRP-USD',
+      'Dogecoin (DOGE)': 'DOGE-USD',
+  }
+
+  last_whatsapp_time = 0
+  last_email_time = 0
+  last_telegram_time = 0
+
+  while True:
+    try:
+      current_time = time.time()
+      (
+          forex_egp,
+          forex_omr,
+          commodities_egp,
+          commodities_omr,
+          usd_egp,
+          usd_omr,
+          gold_oz,
+          ta_summary,
+      ) = get_live_forex_and_commodities_full()
+      merged_news = fetch_all_merged_news()
+      cars_egp, cars_omr = get_combined_auto_market_with_logos(usd_egp, usd_omr)
+      macro_egp, macro_omr = get_full_macro_indicators()
+      current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
+
+      crypto_data_list = []
+      wa_crypto_details = ''
+
+      for name, pair in crypto_pairs.items():
+        cdata = fetch_technical_data(pair)
+        if cdata:
+          price_usd = cdata['Price']
+          price_egp = price_usd * usd_egp
+          price_omr = price_usd * usd_omr
+          rsi = cdata['RSI']
+          sma10 = cdata['SMA_10']
+          sma30 = cdata['SMA_30']
+
+          if sma10 > sma30 and 30 < rsi < 70:
+            status_short = 'Buy'
+          elif rsi >= 70:
+            status_short = 'Overbought'
+          elif rsi <= 30:
+            status_short = 'Oversold'
+          elif sma10 < sma30:
+            status_short = 'Sell'
+          else:
+            status_short = 'Hold'
+
+          crypto_data_list.append({
+              'name': name,
+              'price_usd': price_usd,
+              'price_egp': price_egp,
+              'price_omr': price_omr,
+              'rsi': rsi,
+              'status_short': status_short,
+          })
+
+          short_name = name.split(' ')[0]
+          wa_crypto_details += f'• {short_name}: ${price_usd:,.2f} | RSI:{rsi:.1f} ({status_short})\n'
+
+        time.sleep(0.2)
+
+      news_summary = '1️⃣ أهم الأخبار الاقتصادية:\n'
+      for i in merged_news[:4]:
+        news_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
+
+      # --- 1. إرسال تيليجرام (كل 6 ساعات) ---
+      if (
+          current_time - last_telegram_time >= (TELEGRAM_INTERVAL_HOURS * 3600)
+          or last_telegram_time == 0
+      ):
+        tg_report = f"""📊 التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & عمان 🇴🇲)
+⏱ التوقيت: {current_time_str}
+===================================
+{news_summary}
+2️⃣ أسعار العملات والذهب:
+• USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
+• الذهب عيار 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
+
+3️⃣ العملات الرقمية:
+{wa_crypto_details}
+⚙️ InfoPulse Engine"""
+
+        if send_telegram_message(tg_report):
+          print('✅ تم إرسال تقرير تيليجرام بنجاح.', flush=True)
+          last_telegram_time = current_time
+
+      # --- 2. إرسال الواتساب (كل ساعتين) ---
+      if (
+          current_time - last_whatsapp_time >= (WHATSAPP_INTERVAL_HOURS * 3600)
+          or last_whatsapp_time == 0
+      ):
+        wa_msg = f"""📊 *التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & عمان 🇴🇲)*
+⏱ {current_time_str}
+-----------------------------------
+📰 *أبرز الأسعار:*
+• USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
+• الذهب 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
+-----------------------------------
+🪙 *العملات الرقمية:*
+{wa_crypto_details}-----------------------------------
+⚙️ التحديث القادم بعد ساعتين"""
+
+        if send_whatsapp_message(wa_msg):
+          print('✅ تم إرسال تقرير الواتساب بنجاح.', flush=True)
+          last_whatsapp_time = current_time
+
+      # --- 3. إرسال البريد الإلكتروني (كل 3 ساعات) ---
+      if (
+          current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
+          or last_email_time == 0
+      ):
+        email_html = generate_complete_infopulse_html(
+            current_time_str,
+            merged_news,
+            forex_egp,
+            forex_omr,
+            commodities_egp,
+            commodities_omr,
+            crypto_data_list,
+            cars_egp,
+            cars_omr,
+            macro_egp,
+            macro_omr,
+            ta_summary,
+        )
+
+        subject = (
+            'التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & سلطنة عمان 🇴🇲) -'
+            f' {current_time_str}'
+        )
+
+        if send_email_report(subject, email_html):
+          print('✅ تم إرسال البريد المحدث بنجاح.', flush=True)
+          last_email_time = current_time
+
+    except Exception as e:
+      print(f'❌ خطأ في الحلقة الرئيسية: {e}', flush=True)
+
+    time.sleep(CHECK_INTERVAL_MINUTES * 60)
+
+
+# ---------------------------------------------------------
+# 10. نقطة الانطلاق
+# ---------------------------------------------------------
+if __name__ == '__main__':
+  web_thread = Thread(target=run_web_server)
+  web_thread.daemon = True
+  web_thread.start()
+
+  main_loop()

@@ -39,7 +39,6 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'mabunapoot@gmail.com')
 RECEIVER_EMAIL = os.environ.get('RECEIVER_EMAIL', 'mabunapoot@gmail.com')
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
 
-# مواقيت فترات الإرسال (بالساعات)
 CHECK_INTERVAL_MINUTES = 5
 WHATSAPP_INTERVAL_HOURS = 2
 EMAIL_INTERVAL_HOURS = 3
@@ -47,9 +46,9 @@ TELEGRAM_INTERVAL_HOURS = 6
 
 
 # ---------------------------------------------------------
-# 3. خدمات الإرسال (البريد، واتساب، تيليجرام)
+# 3. خدمات الإرسال (إرسال إيميل HTML بتصميم RTL مميز)
 # ---------------------------------------------------------
-def send_email_report(subject, message_body):
+def send_email_report(subject, html_body):
   if not BREVO_API_KEY:
     print(
         '⚠️ يرجى ضبط BREVO_API_KEY في إعدادات Render لإرسال البريد.', flush=True
@@ -64,10 +63,13 @@ def send_email_report(subject, message_body):
   }
 
   payload = {
-      'sender': {'name': 'Realtime Financial Bot', 'email': SENDER_EMAIL},
+      'sender': {
+          'name': 'النشرة المالية وقطاع السيارات',
+          'email': SENDER_EMAIL,
+      },
       'to': [{'email': RECEIVER_EMAIL}],
       'subject': subject,
-      'textContent': message_body,
+      'htmlContent': html_body,
   }
 
   try:
@@ -109,7 +111,6 @@ def send_telegram_message(message):
   }
   try:
     res = requests.post(url, json=payload, timeout=10)
-    # إعادة المحاولة بدون parse_mode في حال وجود رموز خاصة في الأخبار تمنع الإرسال
     if res.status_code != 200:
       payload.pop('parse_mode', None)
       res = requests.post(url, json=payload, timeout=10)
@@ -120,21 +121,21 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 4. جلب الأخبار والمؤشرات الاقتصادية الرسمية
+# 4. جلب الأخبار الحية بتركيز موسع على صناعة السيارات وقطع الغيار
 # ---------------------------------------------------------
 def fetch_live_arabic_news():
   news_data = {}
 
   sources = {
+      '🏎️ مصنعي السيارات وشركات قطع الغيار العالمية (Bosch, Valeo, ZF...)': [
+          'https://news.google.com/rss/search?q=Bosch+Valeo+ZF+Continental+Denso+قطع+غيار+سيارات&hl=ar&gl=EG&ceid=EG:ar',
+          'https://news.google.com/rss/search?q=صناعة+السيارات+تويوتا+تسلا+فولكس+فاغن+BYD&hl=ar&gl=EG&ceid=EG:ar',
+          'https://news.google.com/rss/search?q=شركات+قطع+غيار+السيارات+سلاسل+التوريد&hl=ar&gl=EG&ceid=EG:ar',
+      ],
       '🌍 مصر والشرق الأوسط': [
           'https://www.mubasher.info/rss/news/egypt',
           'https://www.skynewsarabia.com/rss/v1/economy.xml',
           'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar',
-      ],
-      '🏎️ صناعة وقطع غيار السيارات العالمية (Bosch, Valeo...)': [
-          'https://news.google.com/rss/search?q=صناعة+قطع+غيار+السيارات+Bosch+Valeo&hl=ar&gl=EG&ceid=EG:ar',
-          'https://news.google.com/rss/search?q=شركات+قطع+غيار+السيارات+عالميا&hl=ar&gl=EG&ceid=EG:ar',
-          'https://news.google.com/rss/search?q=Bosch+Valeo+automotive+industry&hl=ar&gl=EG&ceid=EG:ar',
       ],
       '🇺🇸 أمريكا والفيدرالي': [
           'https://sa.investing.com/rss/news_285.rss',
@@ -164,7 +165,7 @@ def fetch_live_arabic_news():
         res = requests.get(url, headers=headers, timeout=6)
         if res.status_code == 200:
           root = ET.fromstring(res.content)
-          items = root.findall('.//item/title')[:2]
+          items = root.findall('.//item/title')[:3]
 
           for item in items:
             if item.text:
@@ -185,7 +186,7 @@ def fetch_live_arabic_news():
         continue
 
     news_data[region] = (
-        headlines[:2] if headlines else ['متابعة مستمرة لأحدث التحركات الاقتصادية.']
+        headlines[:3] if headlines else ['متابعة مستمرة لأحدث التحركات الاقتصادية.']
     )
 
   return news_data
@@ -208,7 +209,7 @@ def get_egypt_macro_indicators():
 
 
 # ---------------------------------------------------------
-# 5. جلب أسعار العملات والمعادن والسيارات والتحليل الفني
+# 5. البيانات المالية والتحليل الفني
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_prices(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -222,36 +223,19 @@ def fetch_egypt_local_gold_prices(usd_egp, gold_oz_usd):
       g24 = float(data.get('gram24', 0))
       if g21 > 2000:
         return {
-            'الذهب (24)': g24 if g24 > 0 else g21 * (24 / 21),
-            'الذهب (21)': g21,
-            'الذهب (18)': g21 * (18 / 21),
+            'الذهب عيار 24': g24 if g24 > 0 else g21 * (24 / 21),
+            'الذهب عيار 21': g21,
+            'الذهب عيار 18': g21 * (18 / 21),
             'الجنيه الذهب': g21 * 8,
         }
   except Exception:
     pass
 
-  try:
-    url = 'https://www.goldpriceegypt.com/'
-    res = requests.get(url, headers=headers, timeout=5)
-    if res.status_code == 200:
-      match_21 = re.search(r'عيار 21.*?(\d[\d,]{3,})', res.text)
-      if match_21:
-        g21 = float(match_21.group(1).replace(',', ''))
-        if g21 > 2000:
-          return {
-              'الذهب (24)': g21 * (24 / 21),
-              'الذهب (21)': g21,
-              'الذهب (18)': g21 * (18 / 21),
-              'الجنيه الذهب': g21 * 8,
-          }
-  except Exception:
-    pass
-
   g24_est = (gold_oz_usd / 31.1035) * usd_egp
   return {
-      'الذهب (24)': g24_est,
-      'الذهب (21)': g24_est * (21 / 24),
-      'الذهب (18)': g24_est * (18 / 24),
+      'الذهب عيار 24': g24_est,
+      'الذهب عيار 21': g24_est * (21 / 24),
+      'الذهب عيار 18': g24_est * (18 / 24),
       'الجنيه الذهب': (g24_est * (21 / 24)) * 8,
   }
 
@@ -264,12 +248,22 @@ def get_live_forex_and_metals():
     usd_egp = rates.get('EGP', 47.4)
 
     forex = {
-        'USD': usd_egp,
-        'EUR': (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0,
-        'GBP': (usd_egp / rates.get('GBP', 1.0)) if rates.get('GBP') else 0,
-        'SAR': (usd_egp / rates.get('SAR', 3.75)) if rates.get('SAR') else 0,
-        'AED': (usd_egp / rates.get('AED', 3.67)) if rates.get('AED') else 0,
-        'KWD': (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0,
+        'USD (دولار أمريكي)': usd_egp,
+        'EUR (يورو)': (
+            (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0
+        ),
+        'GBP (جنيه إسترليني)': (
+            (usd_egp / rates.get('GBP', 1.0)) if rates.get('GBP') else 0
+        ),
+        'SAR (ريال سعودي)': (
+            (usd_egp / rates.get('SAR', 3.75)) if rates.get('SAR') else 0
+        ),
+        'AED (درهم إماراتي)': (
+            (usd_egp / rates.get('AED', 3.67)) if rates.get('AED') else 0
+        ),
+        'KWD (دينار كويتي)': (
+            (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0
+        ),
     }
 
     try:
@@ -290,26 +284,26 @@ def get_live_forex_and_metals():
       silver_oz_usd = 31.5
 
     metals = fetch_egypt_local_gold_prices(usd_egp, gold_oz_usd)
-    metals['الفضة (999)'] = (silver_oz_usd / 31.1035) * usd_egp
-    metals['الفضة (925)'] = ((silver_oz_usd / 31.1035) * usd_egp) * 0.925
+    metals['الفضة عيار 999'] = (silver_oz_usd / 31.1035) * usd_egp
+    metals['الفضة عيار 925'] = ((silver_oz_usd / 31.1035) * usd_egp) * 0.925
     metals['البلاتين (أونصة)'] = gold_oz_usd * 0.37 * usd_egp
     metals['البالاديوم (أونصة)'] = gold_oz_usd * 0.39 * usd_egp
 
     return forex, metals, usd_egp, gold_oz_usd
   except Exception as e:
     print(f'⚠️ خطأ جلب البيانات المالية: {e}', flush=True)
-    return {'USD': 47.4}, {}, 47.4, 2650.0
+    return {'USD (دولار أمريكي)': 47.4}, {}, 47.4, 2650.0
 
 
 def get_dynamic_auto_market(usd_egp):
   factor = usd_egp / 47.4
   cars = {
-      '🚗 اقتصادية': {
+      '🚗 الفئة الاقتصادية': {
           'نيسان صني': f'{int(695000*factor):,} - {int(750000*factor):,} ج.م',
           'شيري أريزو 5': f'{int(650000*factor):,} - {int(710000*factor):,} ج.م',
           'سوزوكي سويفت': f'{int(620000*factor):,} - {int(680000*factor):,} ج.م',
       },
-      '🚘 متوسطة': {
+      '🚘 الفئة المتوسطة': {
           'تويوتا كورولا': (
               f'{int(1300000*factor):,} - {int(1450000*factor):,} ج.م'
           ),
@@ -321,7 +315,7 @@ def get_dynamic_auto_market(usd_egp):
               f'{int(1780000*factor):,} - {int(1950000*factor):,} ج.م'
           ),
       },
-      '🏎️ فاخرة وكهرباء': {
+      '🏎️ الفئة الفاخرة والكهرباء': {
           'مرسيدس C200': (
               f'{int(3400000*factor):,} - {int(3800000*factor):,} ج.م'
           ),
@@ -376,10 +370,154 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 6. الحلقة الرئيسية والجدولة
+# 6. بناء قالب البريد الإلكتروني HTML (RTL)
+# ---------------------------------------------------------
+def generate_html_email_report(
+    current_time_str,
+    arabic_news,
+    egypt_macro,
+    forex_rates,
+    metals,
+    crypto_data_list,
+    auto_data,
+    usd_egp,
+    gold_oz,
+):
+  # قسم الأخبار ببطاقات مميزة
+  news_html = ''
+  for region, headlines in arabic_news.items():
+    is_auto = 'مصنعي السيارات' in region
+    card_bg = '#f0f7ff' if is_auto else '#ffffff'
+    border_color = '#0284c7' if is_auto else '#e2e8f0'
+
+    news_html += f"""
+        <div style="background-color: {card_bg}; border-right: 4px solid {border_color}; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <h3 style="margin: 0 0 10px 0; color: #1e293b; font-size: 16px;">{region}</h3>
+            <ul style="margin: 0; padding-right: 20px; color: #334155; font-size: 14px; line-height: 1.6;">
+    """
+    for h in headlines:
+      news_html += f'<li style="margin-bottom: 6px;">{h}</li>'
+    news_html += '</ul></div>'
+
+  # جدول العملات
+  forex_rows = ''
+  for curr, rate in forex_rates.items():
+    forex_rows += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; color: #1e293b;">{curr}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #0f172a; text-align: left;">{rate:,.2f} ج.م</td>
+        </tr>
+    """
+
+  # جدول الذهب والمعادن
+  metals_rows = ''
+  for item, price in metals.items():
+    metals_rows += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; color: #1e293b;">{item}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #b45309; text-align: left;">{price:,.2f} ج.م</td>
+        </tr>
+    """
+
+  # جدول مؤشرات مصر الكلية
+  macro_rows = ''
+  for key, val in egypt_macro.items():
+    macro_rows += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; color: #334155;">{key}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #0284c7; text-align: left;">{val}</td>
+        </tr>
+    """
+
+  # بطاقات العملات الرقمية
+  crypto_html = ''
+  for c in crypto_data_list:
+    badge_bg = '#dcfce7' if c['status_short'] == 'Buy' else '#fee2e2'
+    badge_color = '#15803d' if c['status_short'] == 'Buy' else '#b91c1c'
+    crypto_html += f"""
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; background-color: #fafafa;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold; color: #0f172a; font-size: 15px;">🪙 {c['name']}</span>
+                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">{c['status_short']}</span>
+            </div>
+            <div style="margin-top: 8px; font-size: 13px; color: #475569; line-height: 1.5;">
+                السعر: <b>${c['price_usd']:,.2f}</b> ({c['price_egp']:,.0f} ج.م) | RSI: <b>{c['rsi']:.1f}</b><br>
+                SMA 10: ${c['sma10']:,.2f} | SMA 30: ${c['sma30']:,.2f}
+            </div>
+        </div>
+    """
+
+  # دليل السيارات
+  auto_html = ''
+  for cat, models in auto_data.items():
+    auto_html += f'<h4 style="color: #475569; margin: 12px 0 6px 0;">{cat}</h4><ul style="margin: 0; padding-right: 20px; font-size: 13px; color: #334155;">'
+    for m_name, m_price in models.items():
+      auto_html += f'<li><b>{m_name}:</b> {m_price}</li>'
+    auto_html += '</ul>'
+
+  html_template = f"""
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; text-align: right; }}
+            .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }}
+            .header {{ background: linear-gradient(135deg, #0f172a, #1e293b); color: #ffffff; padding: 25px; text-align: center; }}
+            .content {{ padding: 25px; }}
+            .section-title {{ font-size: 18px; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 6px; margin-top: 25px; margin-bottom: 15px; font-weight: bold; }}
+            .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 14px; }}
+            .footer {{ background-color: #f8fafc; padding: 15px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1 style="margin:0; font-size:22px;">📊 التقرير المالي الشامل وقطاع السيارات</h1>
+                <p style="margin:8px 0 0 0; font-size:13px; color:#94a3b8;">⏱ التوقيت: {current_time_str}</p>
+            </div>
+            
+            <div class="content">
+                <div class="section-title">📰 النشرة الاقتصادية وقطاع السيارات العالمي</div>
+                {news_html}
+
+                <div class="section-title">🏛️ المؤشرات الاقتصادية الرسمية (مصر)</div>
+                <table class="table-styled">
+                    {macro_rows}
+                </table>
+
+                <div class="section-title">💵 أسعار العملات المباشرة (مقابل الجنيه)</div>
+                <table class="table-styled">
+                    {forex_rows}
+                </table>
+
+                <div class="section-title">👑 أسعار الصاغة والمعادن (أونصة الذهب: ${gold_oz:,.2f})</div>
+                <table class="table-styled">
+                    {metals_rows}
+                </table>
+
+                <div class="section-title">🪙 التحليل الفني للعملات الرقمية</div>
+                {crypto_html}
+
+                <div class="section-title">🚗 دليل أسعار السيارات في مصر (محدث ديناميكياً)</div>
+                {auto_html}
+            </div>
+
+            <div class="footer">
+                ⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة.
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+  return html_template
+
+
+# ---------------------------------------------------------
+# 7. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت المحدث والشامل بنجاح...', flush=True)
+  print('🤖 بدأ تشغيل البوت المحدث بتنسيق HTML RTL...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -401,14 +539,15 @@ def main_loop():
       arabic_news = fetch_live_arabic_news()
       current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
 
-      # صياغة قسم الأخبار لجميع القنوات
+      # صياغة نص الأخبار لتيليجرام وواتساب
       news_summary_str = ''
       for region, headlines in arabic_news.items():
         news_summary_str += f'\n{region}:\n'
         for h in headlines:
           news_summary_str += f'  • {h}\n'
 
-      # صياغة قسم التحليل الفني للعملات الرقمية
+      # جمع بيانات التحليل الفني
+      crypto_data_list = []
       crypto_msg_tg = '\n📊 التحليل الفني للعملات الرقمية:\n===================================\n'
       wa_crypto_details = ''
 
@@ -449,14 +588,21 @@ def main_loop():
             status_short = 'Hold'
             status_desc_tg = '⚪ احتفاظ (Hold)\n  لا توجد إشارة اتجاه قوية واضحة.'
 
+          crypto_data_list.append({
+              'name': name,
+              'price_usd': price_usd,
+              'price_egp': price_egp,
+              'rsi': rsi,
+              'sma10': sma10,
+              'sma30': sma30,
+              'status_short': status_short,
+          })
+
           crypto_msg_tg += (
               f'🪙 {name}\n'
               f'• السعر: ${price_usd:,.2f} ({price_egp:,.0f} ج.م)\n'
-              f'📈 المؤشرات الفنية:\n'
-              f'  - المتوسط السريع (SMA 10): ${sma10:,.2f}\n'
-              f'  - المتوسط البطيء (SMA 30): ${sma30:,.2f}\n'
-              f'  - مؤشر القوة النسبية (RSI): {rsi:.1f}\n'
-              f'🚦 القرار الاستثماري:\n{status_desc_tg}\n'
+              f'📈 المؤشرات: RSI:{rsi:.1f} | SMA10:${sma10:,.0f}\n'
+              f'🚦 القرار: {status_short}\n'
               '-----------------------------------\n'
           )
 
@@ -474,25 +620,13 @@ def main_loop():
         for curr_name, rate in forex_rates.items():
           forex_msg_tg += f'• {curr_name}: {rate:,.2f} ج.م\n'
 
-        macro_tg = '\n🇪🇬 بيانات البنك المركزي وCAPMAS والنمو (IMF):\n'
-        macro_tg += (
-            f"• الفائدة الرئيسية (CBE):"
-            f" {egypt_macro.get('سعر الفائدة الرئيسي (البنك المركزي CBE)')}\n"
-        )
-        macro_tg += (
-            f"• التضخم السنوي:"
-            f" {egypt_macro.get('معدل التضخم السنوي (CAPMAS / CBE)')} |"
-            f" البطالة:"
-            f" {egypt_macro.get('معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)')}\n"
-        )
-
         full_tg_report = f"""📊 تقرير السوق الشامل والنشرة الإخبارية الحية
 ⏱ التوقيت: {current_time_str}
 ===================================
-📰 أهم الأخبار الاقتصادية وقطاع السيارات:
+📰 أهم الأخبار الاقتصادية وقطع غيار السيارات:
 {news_summary_str}
 ===================================
-{forex_msg_tg}{macro_tg}===================================
+{forex_msg_tg}===================================
 {crypto_msg_tg}⚙️ إرسال تلقائي عبر السحابة"""
 
         if send_telegram_message(full_tg_report):
@@ -507,16 +641,10 @@ def main_loop():
         wa_msg = f"""📊 *تقرير السوق والأخبار العاجلة*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز عناوين الأخبار وقطاع السيارات:*
+📰 *أبرز العناوين وقطاع السيارات:*
 {news_summary_str}
 -----------------------------------
-💵 *أسعار العملات (EGP):*
-• USD: {usd_egp:.2f} | EUR: {forex_rates.get('EUR', 0):.2f}
-• GBP: {forex_rates.get('GBP', 0):.2f} | SAR: {forex_rates.get('SAR', 0):.2f}
------------------------------------
-👑 *أسعار الصاغة المصرية (الجرام):*
-• عيار 21: {metals.get('الذهب (21)', 0):,.0f} ج.م
-• عيار 24: {metals.get('الذهب (24)', 0):,.0f} ج.م
+💵 *الدولار:* {usd_egp:.2f} ج.م | *الذهب عيار 21:* {metals.get('الذهب عيار 21', 0):,.0f} ج.م
 -----------------------------------
 🪙 *العملات الرقمية:*
 {wa_crypto_details}-----------------------------------
@@ -526,65 +654,33 @@ def main_loop():
           print('✅ تم إرسال تقرير الواتساب بنجاح.', flush=True)
           last_whatsapp_time = current_time
 
-      # --- 3. إرسال البريد الإلكتروني الشامل الكامل (كل 3 ساعات) ---
+      # --- 3. إرسال البريد الإلكتروني الشامل بتنسيق HTML (كل 3 ساعات) ---
       if (
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
       ):
         auto_data = get_dynamic_auto_market(usd_egp)
 
-        macro_str = '\n'.join([f'• {k}: {v}' for k, v in egypt_macro.items()])
-        metals_str = '\n'.join(
-            [f'• {k}: {v:,.2f} ج.م' for k, v in metals.items()]
+        html_email_content = generate_html_email_report(
+            current_time_str,
+            arabic_news,
+            egypt_macro,
+            forex_rates,
+            metals,
+            crypto_data_list,
+            auto_data,
+            usd_egp,
+            gold_oz,
         )
 
-        auto_str = ''
-        for cat_name, models in auto_data.items():
-          auto_str += f'\n{cat_name}:\n'
-          for model_name, price_range in models.items():
-            auto_str += f'  • {model_name}: {price_range}\n'
-
-        email_report = f"""📊 التقرير المالي والإقتصادي الرسمي والشامل
-⏱ التوقيت: {current_time_str}
-المستلم: {RECEIVER_EMAIL}
-==================================================
-
-1️⃣ النشرة الاقتصادية العاجلة وقطاع السيارات العالمية:
---------------------------------------------------{news_summary_str}
-
-2️⃣ المؤشرات الاقتصادية الكلية (البنك المركزي + CAPMAS + صندوق النقد الدولي):
---------------------------------------------------
-{macro_str}
-
-3️⃣ أسعار العملات الأجنبية المباشرة بالجنيه المصري:
---------------------------------------------------
-• USD (دولار أمريكي): {usd_egp:.2f} ج.م
-• EUR (يورو): {forex_rates.get('EUR', 0):.2f} ج.م
-• GBP (جنيه إسترليني): {forex_rates.get('GBP', 0):.2f} ج.م
-• SAR (ريال سعودي): {forex_rates.get('SAR', 0):.2f} ج.م
-• AED (درهم إماراتي): {forex_rates.get('AED', 0):.2f} ج.م
-• KWD (دينار كويتي): {forex_rates.get('KWD', 0):.2f} ج.م
-
-4️⃣ بورصة الصاغة المصرية والمعادن (الأونصة العالمية: ${gold_oz:,.2f}):
---------------------------------------------------
-{metals_str}
-
-5️⃣ مؤشرات وتحليل العملات الرقمية المباشر:
---------------------------------------------------
-{crypto_msg_tg}
-
-6️⃣ مؤشر ودليل أسعار السيارات في مصر (محدث ديناميكياً):
---------------------------------------------------{auto_str}
-
-==================================================
-⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة.
-"""
         email_subject = (
-            f'📈 التقرير المالي والإقتصادي الشامل - {current_time_str}'
+            f'📈 التقرير المالي وقطاع السيارات الشامل - {current_time_str}'
         )
 
-        if send_email_report(email_subject, email_report):
-          print('✅ تم إرسال البريد الإلكتروني بنجاح.', flush=True)
+        if send_email_report(email_subject, html_email_content):
+          print(
+              '✅ تم إرسال البريد الإلكتروني Mapped HTML بنجاح.', flush=True
+          )
           last_email_time = current_time
 
     except Exception as e:
@@ -594,7 +690,7 @@ def main_loop():
 
 
 # ---------------------------------------------------------
-# 7. نقطة الانطلاق
+# 8. نقطة الانطلاق
 # ---------------------------------------------------------
 if __name__ == '__main__':
   web_thread = Thread(target=run_web_server)

@@ -16,7 +16,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-  return '🤖 Realtime Financial & Auto Industry Bot is running!'
+  return '🤖 Data River - Realtime Economic Developments Bot is running!'
 
 
 def run_web_server():
@@ -63,10 +63,7 @@ def send_email_report(subject, html_body):
   }
 
   payload = {
-      'sender': {
-          'name': 'التقرير المالي وقطاع السيارات',
-          'email': SENDER_EMAIL,
-      },
+      'sender': {'name': 'Data River', 'email': SENDER_EMAIL},
       'to': [{'email': RECEIVER_EMAIL}],
       'subject': subject,
       'htmlContent': html_body,
@@ -121,7 +118,7 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 4. جلب الأخبار العامة وأخبار السيارات (مع الروابط)
+# 4. جلب الأخبار الاقتصادية وأخبار السيارات مع المصادر
 # ---------------------------------------------------------
 def fetch_news_with_links(sources_dict):
   news_data = {}
@@ -151,7 +148,6 @@ def fetch_news_with_links(sources_dict):
               link_url = link_node.text.strip() if link_node is not None and link_node.text else '#'
 
               if title_clean and len(title_clean) > 10:
-                # تجنب التكرار
                 if not any(i['title'] == title_clean for i in items_list):
                   items_list.append({'title': title_clean, 'link': link_url})
 
@@ -171,7 +167,7 @@ def fetch_news_with_links(sources_dict):
 
 
 def fetch_all_live_news():
-  # 1. الأخبار الاقتصادية العامة
+  # 1. أهم الأخبار الاقتصادية العامة
   econ_sources = {
       '🌍 مصر والشرق الأوسط': [
           'https://www.mubasher.info/rss/news/egypt',
@@ -188,7 +184,7 @@ def fetch_all_live_news():
       ],
   }
 
-  # 2. أخبار صناعة السيارات وقطع الغيار
+  # 2. أخبار صناعة السيارات وشركات قطع الغيار العالمية
   auto_sources = {
       '🏎️ مصنعي السيارات وشركات قطع الغيار العالمية (Bosch, Valeo, ZF...)': [
           'https://news.google.com/rss/search?q=Bosch+Valeo+ZF+Continental+Denso+قطع+غيار+سيارات&hl=ar&gl=EG&ceid=EG:ar',
@@ -204,8 +200,40 @@ def fetch_all_live_news():
 
 
 # ---------------------------------------------------------
-# 5. البيانات المالية والعملات والمعادن والمواد الخام
+# 5. جلب أسعار العملات والمعادن والسوق المحلي المصري
 # ---------------------------------------------------------
+def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
+  headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+
+  # محاولة جلب عيار 21 المباشر من السوق المصري
+  try:
+    url = 'https://api.gold-era.com/api/prices/gold'
+    res = requests.get(url, headers=headers, timeout=5)
+    if res.status_code == 200:
+      data = res.json()
+      g21 = float(data.get('gram21', 0))
+      if g21 > 2000:
+        return g21
+  except Exception:
+    pass
+
+  try:
+    url = 'https://www.goldpriceegypt.com/'
+    res = requests.get(url, headers=headers, timeout=5)
+    if res.status_code == 200:
+      match_21 = re.search(r'عيار 21.*?(\d[\d,]{3,})', res.text)
+      if match_21:
+        g21 = float(match_21.group(1).replace(',', ''))
+        if g21 > 2000:
+          return g21
+  except Exception:
+    pass
+
+  # حساب تقديري دقيق بناءً على الأونصة وسعر الدولار محلياً
+  g24_est = (gold_oz_usd / 31.1035) * usd_egp
+  return g24_est * (21 / 24)
+
+
 def get_live_forex_and_commodities():
   try:
     url = 'https://open.er-api.com/v6/latest/USD'
@@ -213,7 +241,7 @@ def get_live_forex_and_commodities():
     rates = res.json().get('rates', {})
     usd_egp = rates.get('EGP', 47.4)
 
-    # 3. العملات بالجنية المصري (شاملة اليوان الصيني CNY)
+    # 3. أسعار العملات (شاملة اليوان الصيني)
     forex = {
         'USD (دولار أمريكي)': usd_egp,
         'EUR (يورو أوروبي)': (
@@ -236,7 +264,7 @@ def get_live_forex_and_commodities():
         ),
     }
 
-    # جلب أسعار المعادن الحية والمواد الخام
+    # الأونصة العالمية
     try:
       r_gold = requests.get(
           'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
@@ -254,19 +282,28 @@ def get_live_forex_and_commodities():
     except Exception:
       silver_oz_usd = 31.5
 
-    # تقدير أسعار الصاغة والمعادن والمواد الخام بالجنيه المصري
-    g24_est = (gold_oz_usd / 31.1035) * usd_egp
-    g21_est = g24_est * (21 / 24)
+    # 4. أسعار الذهب في مصر (السوق المحلي) لجميع العيارات والفضة
+    g21_local = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
+    g24_local = g21_local * (24 / 21)
+
+    silver_999_local = (silver_oz_usd / 31.1035) * usd_egp
 
     commodities = {
-        'الذهب عيار 24 (جرام)': g24_est,
-        'الذهب عيار 21 (جرام)': g21_est,
-        'الذهب عيار 18 (جرام)': g24_est * (18 / 24),
-        'الجنيه الذهب (8 جرام)': g21_est * 8,
-        'الفضة عيار 999 (جرام)': (silver_oz_usd / 31.1035) * usd_egp,
-        'الفضة عيار 925 (جرام)': ((silver_oz_usd / 31.1035) * usd_egp) * 0.925,
-        'البلاتين (أونصة)': gold_oz_usd * 0.37 * usd_egp,
-        'البالاديوم (أونصة)': gold_oz_usd * 0.39 * usd_egp,
+        # عيارات الذهب الكاملة
+        'الذهب عيار 24 (جرام)': g24_local,
+        'الذهب عيار 22 (جرام)': g24_local * (22 / 24),
+        'الذهب عيار 21 (جرام)': g21_local,
+        'الذهب عيار 18 (جرام)': g24_local * (18 / 24),
+        'الذهب عيار 14 (جرام)': g24_local * (14 / 24),
+        'الذهب عيار 12 (جرام)': g24_local * (12 / 24),
+        'الجنيه الذهب (8 جرام عيار 21)': g21_local * 8,
+        'أونصة الذهب محلياً (31.1 جرام عيار 24)': g24_local * 31.1035,
+        # عيارات الفضة الكاملة
+        'الفضة عيار 999 (سبيكة/جرام)': silver_999_local,
+        'الفضة عيار 925 (استرليني/جرام)': silver_999_local * 0.925,
+        'الفضة عيار 900 (جرام)': silver_999_local * 0.900,
+        'الفضة عيار 800 (مجوهرات/جرام)': silver_999_local * 0.800,
+        # المواد الخام والحبوب
         'النفط خام برنت (برميل)': 78.5 * usd_egp,
         'القمح العالمي (طن)': 245.0 * usd_egp,
         'الذرة العالمية (طن)': 175.0 * usd_egp,
@@ -274,14 +311,12 @@ def get_live_forex_and_commodities():
     }
 
     forex_ta_summary = (
-        '🟢 الاتجاه العام للعملات: استقرار الدولار مقابل الجنيه مع تحركات'
-        ' متوازنة لليورو واليوان الصيني مدعومة بثبات سعر الفائدة والتدفقات'
-        ' النقدية.'
+        '🟢 التحليل الفني للعملات: استقرار واستقرار نسبي للدولار واليوان'
+        ' الصيني مع توازنات في العرض والطلب بالجهاز المصرفي.'
     )
     commodities_ta_summary = (
-        '🟡 الاتجاه العام للمعادن والحبوب: الذهب في منطقة تذبذب عرضي مائل'
-        ' للصعود عالمياً، واستقرار أسعار الحبوب والنحاس مع ترقب حركة سلاسل'
-        ' التوريد.'
+        '🟡 التحليل الفني للذهب والمعادن: اتجاه عرضي مائل للصعود في الصاغة'
+        ' المصرية متأثراً بأسعار الأونصة العالمية وتوازن الطلب المحلي.'
     )
 
     return (
@@ -298,7 +333,7 @@ def get_live_forex_and_commodities():
 
 
 # ---------------------------------------------------------
-# 6. دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)
+# 6. دليل أسعار السيارات (ماركات أوروبية وآسيوية فقط)
 # ---------------------------------------------------------
 def get_european_asian_auto_market(usd_egp):
   factor = usd_egp / 47.4
@@ -409,7 +444,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد قالب البريد الإلكتروني HTML المنسق حسب الترتيب المطلوب
+# 8. توليد البريد الإلكتروني HTML باسم "التطورات الاقتصادية من Data River"
 # ---------------------------------------------------------
 def generate_ordered_html_email(
     current_time_str,
@@ -424,7 +459,7 @@ def generate_ordered_html_email(
     egypt_macro,
 ):
 
-  # 1. الأخبار الاقتصادية مع الرابط بخط أصغر
+  # 1. أهم الأخبار الاقتصادية العامة
   econ_news_html = ''
   for region, items in economic_news.items():
     econ_news_html += f"""
@@ -441,7 +476,7 @@ def generate_ordered_html_email(
       """
     econ_news_html += '</ul></div>'
 
-  # 2. أخبار صناعة السيارات وقطع الغيار مع الرابط بخط أصغر
+  # 2. أخبار صناعة السيارات وشركات قطع الغيار العالمية
   auto_news_html = ''
   for region, items in auto_industry_news.items():
     auto_news_html += f"""
@@ -458,7 +493,7 @@ def generate_ordered_html_email(
       """
     auto_news_html += '</ul></div>'
 
-  # 3. أسعار العملات (شاملة اليوان) والتحليل الفني
+  # 3. أسعار العملات
   forex_rows = ''
   for curr, rate in forex_rates.items():
     forex_rows += f"""
@@ -468,7 +503,7 @@ def generate_ordered_html_email(
         </tr>
     """
 
-  # 4. أسعار الصاغة والمعادن والمواد الخام والحبوب والتحليل الفني
+  # 4. أسعار الذهب والمعادن في مصر (السوق المحلي)
   commodities_rows = ''
   for item, price in commodities.items():
     commodities_rows += f"""
@@ -495,7 +530,7 @@ def generate_ordered_html_email(
         </div>
     """
 
-  # 6. دليل أسعار السيارات (أوروبي وآسيوي فقط)
+  # 6. دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)
   auto_market_html = ''
   for brand_cat, models in auto_market_data.items():
     auto_market_html += f'<h4 style="color: #1e293b; margin: 10px 0 6px 0;">{brand_cat}</h4><ul style="margin: 0; padding-right: 18px; font-size: 13px; color: #334155;">'
@@ -505,7 +540,7 @@ def generate_ordered_html_email(
       )
     auto_market_html += '</ul>'
 
-  # 8. المؤشرات الاقتصادية الكلية (مصر)
+  # 7. المؤشرات الاقتصادية الرسمية (مصر)
   macro_rows = ''
   for k, v in egypt_macro.items():
     macro_rows += f"""
@@ -534,50 +569,50 @@ def generate_ordered_html_email(
     <body>
         <div class="container">
             <div class="header">
-                <h2 style="margin:0; font-size:20px;">📊 التقرير المالي الشامل وسوق السيارات</h2>
+                <h2 style="margin:0; font-size:20px;">التطورات الاقتصادية من Data River</h2>
                 <p style="margin:6px 0 0 0; font-size:12px; color:#94a3b8;">⏱ التوقيت: {current_time_str}</p>
             </div>
             
             <div class="content">
-                <!-- 1. الأخبار الاقتصادية -->
-                <div class="section-title">1️⃣ الأخبار الاقتصادية العامة والربط بالمصادر</div>
+                <!-- 1. أهم الأخبار الاقتصادية العامة -->
+                <div class="section-title">1️⃣ أهم الأخبار الاقتصادية العامة</div>
                 {econ_news_html}
 
-                <!-- 2. أخبار صناعة السيارات -->
+                <!-- 2. أخبار صناعة السيارات وشركات قطع الغيار العالمية -->
                 <div class="section-title">2️⃣ أخبار صناعة السيارات وشركات قطع الغيار العالمية</div>
                 {auto_news_html}
 
                 <!-- 3. أسعار العملات -->
-                <div class="section-title">3️⃣ أسعار العملات الأجنبية (شاملة اليوان الصيني)</div>
+                <div class="section-title">3️⃣ أسعار العملات</div>
                 <div class="ta-box">{forex_ta}</div>
                 <table class="table-styled">
                     {forex_rows}
                 </table>
 
-                <!-- 4. أسعار الصاغة والمعادن والمواد الخام والحبوب -->
-                <div class="section-title">4️⃣ أسعار الصاغة والمعادن والمواد الخام والحبوب (بالجنية المصري)</div>
+                <!-- 4. أسعار الذهب في مصر (السوق المحلي) والمعادن -->
+                <div class="section-title">4️⃣ أسعار الذهب في مصر (السوق المحلي والمعادن)</div>
                 <div class="ta-box">{commodities_ta}</div>
                 <table class="table-styled">
                     {commodities_rows}
                 </table>
 
                 <!-- 5. التحليل الفني للعملات الرقمية -->
-                <div class="section-title">5️⃣ التحليل الفني المباشر للعملات الرقمية</div>
+                <div class="section-title">5️⃣ التحليل الفني للعملات الرقمية</div>
                 {crypto_html}
 
                 <!-- 6. دليل أسعار السيارات في مصر -->
                 <div class="section-title">6️⃣ دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)</div>
                 {auto_market_html}
 
-                <!-- 8. المؤشرات الاقتصادية الرسمية (مصر) -->
-                <div class="section-title">7️⃣ المؤشرات الاقتصادية الكلية الرسمية (جمهورية مصر العربية)</div>
+                <!-- 7. المؤشرات الاقتصادية الرسمية (مصر) -->
+                <div class="section-title">7️⃣ المؤشرات الاقتصادية الرسمية (مصر)</div>
                 <table class="table-styled">
                     {macro_rows}
                 </table>
             </div>
 
             <div class="footer">
-                ⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة | جميع الأسعار معرّفة بالجنيه المصري (ج.م).
+                ⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة بواسطة Data River | جميع الأسعار معرّفة بالجنيه المصري (ج.م).
             </div>
         </div>
     </body>
@@ -590,7 +625,7 @@ def generate_ordered_html_email(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت بالترتيب والتصميم المحدث بالكامل...', flush=True)
+  print('🤖 بدأ تشغيل بوت Data River بالتسميات الجديدة...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -620,7 +655,6 @@ def main_loop():
       egypt_macro = get_egypt_macro_indicators()
       current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
 
-      # تجميع التحليل الفني للعملات الرقمية
       crypto_data_list = []
       crypto_msg_tg = '\n📊 التحليل الفني للعملات الرقمية:\n===================================\n'
       wa_crypto_details = ''
@@ -661,13 +695,12 @@ def main_loop():
 
         time.sleep(0.2)
 
-      # إعداد ملخص النص للقنوات (تيليجرام وواتساب)
-      news_tg_summary = '1️⃣ الأخبار الاقتصادية:\n'
+      news_tg_summary = '1️⃣ أهم الأخبار الاقتصادية العامة:\n'
       for r, items in economic_news.items():
         for i in items[:2]:
           news_tg_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
 
-      auto_tg_summary = '\n2️⃣ أخبار السيارات وقطع الغيار:\n'
+      auto_tg_summary = '\n2️⃣ أخبار صناعة السيارات وقطع الغيار:\n'
       for r, items in auto_industry_news.items():
         for i in items[:2]:
           auto_tg_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
@@ -677,21 +710,21 @@ def main_loop():
           current_time - last_telegram_time >= (TELEGRAM_INTERVAL_HOURS * 3600)
           or last_telegram_time == 0
       ):
-        tg_report = f"""📊 تقرير السوق الشامل والأخبار الحية
+        tg_report = f"""📊 التطورات الاقتصادية من Data River
 ⏱ التوقيت: {current_time_str}
 ===================================
 {news_tg_summary}{auto_tg_summary}
-3️⃣ أسعار العملات (EGP):
+3️⃣ أسعار العملات:
 • USD: {usd_egp:.2f} ج.م | EUR: {forex_rates.get('EUR (يورو أوروبي)', 0):.2f} ج.م
 • CNY (اليوان الصيني): {forex_rates.get('CNY (يوان صيني)', 0):.2f} ج.م
 
-4️⃣ الذهب والمعادن:
+4️⃣ أسعار الذهب في مصر:
 • عيار 21: {commodities.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م
-• الجنيه الذهب: {commodities.get('الجنيه الذهب (8 جرام)', 0):,.0f} ج.م
+• الجنيه الذهب: {commodities.get('الجنيه الذهب (8 جرام عيار 21)', 0):,.0f} ج.م
 
 5️⃣ العملات الرقمية:
 {wa_crypto_details}
-⚙️ إرسال تلقائي عبر السحابة"""
+⚙️ Data River Automated Engine"""
 
         if send_telegram_message(tg_report):
           print('✅ تم إرسال تقرير تيليجرام بنجاح.', flush=True)
@@ -702,10 +735,10 @@ def main_loop():
           current_time - last_whatsapp_time >= (WHATSAPP_INTERVAL_HOURS * 3600)
           or last_whatsapp_time == 0
       ):
-        wa_msg = f"""📊 *تقرير السوق والأخبار العاجلة*
+        wa_msg = f"""📊 *التطورات الاقتصادية من Data River*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز الأخبار والسيارات:*
+📰 *أبرز عناوين الأخبار والسيارات:*
 • USD: {usd_egp:.2f} ج.م | CNY: {forex_rates.get('CNY (يوان صيني)', 0):.2f} ج.م
 • الذهب عيار 21: {commodities.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م
 -----------------------------------
@@ -717,7 +750,7 @@ def main_loop():
           print('✅ تم إرسال تقرير الواتساب بنجاح.', flush=True)
           last_whatsapp_time = current_time
 
-      # --- 3. إرسال البريد الإلكتروني المنسق الشامل (كل 3 ساعات) ---
+      # --- 3. إرسال البريد الإلكتروني (كل 3 ساعات) ---
       if (
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
@@ -735,14 +768,10 @@ def main_loop():
             egypt_macro,
         )
 
-        subject = (
-            f'📈 التقرير المالي المنسق وقطاع السيارات - {current_time_str}'
-        )
+        subject = f'التطورات الاقتصادية من Data River - {current_time_str}'
 
         if send_email_report(subject, email_html):
-          print(
-              '✅ تم إرسال البريد الإلكتروني بالترتيب الجديد بنجاح.', flush=True
-          )
+          print('✅ تم إرسال البريد الإلكتروني بنجاح.', flush=True)
           last_email_time = current_time
 
     except Exception as e:

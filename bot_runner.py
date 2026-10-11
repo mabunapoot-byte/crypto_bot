@@ -16,7 +16,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-  return '🤖 InfoPulse - Realtime Economic Developments Bot is running!'
+  return '🤖 InfoPulse - Combined Economic Developments Bot (Egypt & Oman) is running!'
 
 
 def run_web_server():
@@ -118,17 +118,16 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 4. جلب كافة الأخبار مدمجة في قائمة واحدة بدون تصنيف
+# 4. جلب الأخبار الاقتصادية المدمجة (مصر، عمان، عالمي، سيارات)
 # ---------------------------------------------------------
 def fetch_all_merged_news():
   sources = [
       'https://www.mubasher.info/rss/news/egypt',
+      'https://news.google.com/rss/search?q=اقتصاد+سلطنة+عمان+البنك+المركزي&hl=ar&gl=OM&ceid=OM:ar',
       'https://www.skynewsarabia.com/rss/v1/economy.xml',
       'https://news.google.com/rss/search?q=Bosch+Valeo+ZF+Continental+Denso+قطع+غيار+سيارات&hl=ar&gl=EG&ceid=EG:ar',
-      'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar',
       'https://news.google.com/rss/search?q=صناعة+السيارات+تويوتا+تسلا+فولكس+فاغن+BYD&hl=ar&gl=EG&ceid=EG:ar',
       'https://sa.investing.com/rss/news_285.rss',
-      'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
   ]
 
   headers = {
@@ -174,7 +173,7 @@ def fetch_all_merged_news():
 
 
 # ---------------------------------------------------------
-# 5. البيانات المالية والعملات والمعادن والسوق المحلي
+# 5. البيانات المالية (مصر وسلطنة عمان)
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -206,15 +205,17 @@ def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   return g24_est * (21 / 24)
 
 
-def get_live_forex_and_commodities():
+def get_live_forex_and_commodities_combined():
   try:
     url = 'https://open.er-api.com/v6/latest/USD'
     res = requests.get(url, timeout=5)
     rates = res.json().get('rates', {})
-    usd_egp = rates.get('EGP', 47.4)
 
-    # 2. أسعار العملات (شاملة اليوان الصيني)
-    forex = {
+    usd_egp = rates.get('EGP', 47.4)
+    usd_omr = rates.get('OMR', 0.3845)
+
+    # 1. أسعار العملات في مصر (ج.م) وعمان (ر.ع.)
+    forex_egp = {
         'USD (دولار أمريكي)': usd_egp,
         'EUR (يورو أوروبي)': (
             (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0
@@ -228,14 +229,31 @@ def get_live_forex_and_commodities():
         'AED (درهم إماراتي)': (
             (usd_egp / rates.get('AED', 3.67)) if rates.get('AED') else 0
         ),
-        'KWD (دينار كويتي)': (
-            (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0
-        ),
         'CNY (يوان صيني)': (
             (usd_egp / rates.get('CNY', 7.23)) if rates.get('CNY') else 0
         ),
     }
 
+    forex_omr = {
+        'USD (دولار أمريكي)': usd_omr,
+        'EUR (يورو أوروبي)': (
+            (usd_omr / rates.get('EUR', 1.0)) if rates.get('EUR') else 0.415
+        ),
+        'GBP (جنيه إسترليني)': (
+            (usd_omr / rates.get('GBP', 1.0)) if rates.get('GBP') else 0.490
+        ),
+        'SAR (ريال سعودي)': (
+            (usd_omr / rates.get('SAR', 3.75)) if rates.get('SAR') else 0.1025
+        ),
+        'AED (درهم إماراتي)': (
+            (usd_omr / rates.get('AED', 3.67)) if rates.get('AED') else 0.1047
+        ),
+        'CNY (يوان صيني)': (
+            (usd_omr / rates.get('CNY', 7.23)) if rates.get('CNY') else 0.0532
+        ),
+    }
+
+    # الأونصة والفضة عالمياً
     try:
       r_gold = requests.get(
           'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
@@ -253,122 +271,109 @@ def get_live_forex_and_commodities():
     except Exception:
       silver_oz_usd = 31.5
 
-    # 3. أسعار الذهب في مصر (السوق المحلي) لجميع العيارات والفضة
-    g21_local = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
-    g24_local = g21_local * (24 / 21)
-    silver_999_local = (silver_oz_usd / 31.1035) * usd_egp
+    # الذهب والفضة في مصر (ج.م)
+    g21_egp = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
+    g24_egp = g21_egp * (24 / 21)
+    silver_999_egp = (silver_oz_usd / 31.1035) * usd_egp
 
-    commodities = {
-        'الذهب عيار 24 (جرام)': g24_local,
-        'الذهب عيار 22 (جرام)': g24_local * (22 / 24),
-        'الذهب عيار 21 (جرام)': g21_local,
-        'الذهب عيار 18 (جرام)': g24_local * (18 / 24),
-        'الذهب عيار 14 (جرام)': g24_local * (14 / 24),
-        'الذهب عيار 12 (جرام)': g24_local * (12 / 24),
-        'الجنيه الذهب (8 جرام عيار 21)': g21_local * 8,
-        'أونصة الذهب محلياً (31.1 جرام عيار 24)': g24_local * 31.1035,
-        'الفضة عيار 999 (سبيكة/جرام)': silver_999_local,
-        'الفضة عيار 925 (استرليني/جرام)': silver_999_local * 0.925,
-        'الفضة عيار 900 (جرام)': silver_999_local * 0.900,
-        'الفضة عيار 800 (مجوهرات/جرام)': silver_999_local * 0.800,
-        'النفط خام برنت (برميل)': 78.5 * usd_egp,
-        'القمح العالمي (طن)': 245.0 * usd_egp,
-        'الذرة العالمية (طن)': 175.0 * usd_egp,
-        'النحاس الصناعي (طن)': 9500.0 * usd_egp,
+    commodities_egp = {
+        'الذهب عيار 24 (جرام)': g24_egp,
+        'الذهب عيار 21 (جرام)': g21_egp,
+        'الذهب عيار 18 (جرام)': g24_egp * (18 / 24),
+        'الجنيه الذهب (8 جرام 21)': g21_egp * 8,
+        'الفضة عيار 999 (جرام)': silver_999_egp,
     }
 
-    forex_ta_summary = (
-        '🟢 التحليل الفني للعملات: استقرار واستقرار نسبي للدولار واليوان'
-        ' الصيني مع توازنات في العرض والطلب بالجهاز المصرفي.'
-    )
-    commodities_ta_summary = (
-        '🟡 التحليل الفني للذهب والمعادن: اتجاه عرضي مائل للصعود في الصاغة'
-        ' المصرية متأثراً بأسعار الأونصة العالمية وتوازن الطلب المحلي.'
+    # الذهب والفضة في سلطنة عمان (ر.ع.)
+    g24_omr = (gold_oz_usd / 31.1035) * usd_omr
+    g21_omr = g24_omr * (21 / 24)
+    silver_999_omr = (silver_oz_usd / 31.1035) * usd_omr
+
+    commodities_omr = {
+        'الذهب عيار 24 (جرام)': g24_omr,
+        'الذهب عيار 21 (جرام)': g21_omr,
+        'الذهب عيار 18 (جرام)': g24_omr * (18 / 24),
+        'الريال الذهب (8 جرام 21)': g21_omr * 8,
+        'الفضة عيار 999 (جرام)': silver_999_omr,
+    }
+
+    ta_summary = (
+        '🟢 التحليل الفني: استقرار ملحوظ في أسعار الصرف الرسمية بمصر وعُمان مع'
+        ' توازنات محددة في أسواق الصاغة المحلية متأثرة بحركة الأونصة عالمياً.'
     )
 
     return (
-        forex,
-        commodities,
+        forex_egp,
+        forex_omr,
+        commodities_egp,
+        commodities_omr,
         usd_egp,
+        usd_omr,
         gold_oz_usd,
-        forex_ta_summary,
-        commodities_ta_summary,
+        ta_summary,
     )
   except Exception as e:
-    print(f'⚠️ خطأ جلب البيانات المالية: {e}', flush=True)
-    return {'USD (دولار أمريكي)': 47.4}, {}, 47.4, 2650.0, '', ''
+    print(f'⚠️ خطأ جلب البيانات المدمجة: {e}', flush=True)
+    return {}, {}, {}, {}, 47.4, 0.3845, 2650.0, ''
 
 
 # ---------------------------------------------------------
-# 6. دليل أسعار السيارات (ماركات أوروبية وآسيوية فقط)
+# 6. أسعار السيارات في مصر وعمان
 # ---------------------------------------------------------
-def get_european_asian_auto_market(usd_egp):
-  factor = usd_egp / 47.4
-  cars = {
-      '🇪🇺 الماركات الأوروبية (European Brands)': {
-          'مرسيدس C200 (ألماني)': (
-              f'{int(3400000*factor):,} - {int(3800000*factor):,} ج.م'
-          ),
-          'بي إم دبليو 320i (ألماني)': (
-              f'{int(3200000*factor):,} - {int(3600000*factor):,} ج.م'
-          ),
-          'فولكس فاجن ID.4 (كهرباء ألماني)': (
-              f'{int(1650000*factor):,} - {int(1850000*factor):,} ج.م'
-          ),
-          'بيجو 408 (فرنسي)': (
-              f'{int(1950000*factor):,} - {int(2150000*factor):,} ج.م'
-          ),
-          'سكودا أوكتافيا (تشيكي)': (
-              f'{int(1800000*factor):,} - {int(1980000*factor):,} ج.م'
-          ),
-          'رينو ميجان (فرنسي)': (
-              f'{int(1250000*factor):,} - {int(1420000*factor):,} ج.م'
-          ),
-      },
-      '🌏 الماركات الآسيوية (Asian Brands)': {
-          'تويوتا كورولا (ياباني)': (
-              f'{int(1300000*factor):,} - {int(1450000*factor):,} ج.م'
-          ),
-          'نيسان صني (ياباني)': (
-              f'{int(695000*factor):,} - {int(750000*factor):,} ج.م'
-          ),
-          'هيونداي إلترا AD (كوري)': (
-              f'{int(890000*factor):,} - {int(980000*factor):,} ج.م'
-          ),
-          'كيا سبورتاج (كوري)': (
-              f'{int(1780000*factor):,} - {int(1950000*factor):,} ج.م'
-          ),
-          'شيري أريزو 5 (صيني)': (
-              f'{int(650000*factor):,} - {int(710000*factor):,} ج.م'
-          ),
-          'إم جي ZS (صيني)': (
-              f'{int(975000*factor):,} - {int(1050000*factor):,} ج.م'
-          ),
-          'BYD Song Plus (كهرباء صيني)': (
-              f'{int(1550000*factor):,} - {int(1720000*factor):,} ج.م'
-          ),
-      },
+def get_combined_auto_market(usd_egp, usd_omr):
+  factor_egp = usd_egp / 47.4
+  factor_omr = usd_omr / 0.3845
+
+  cars_egp = {
+      'مرسيدس C200 (ألماني)': (
+          f'{int(3400000*factor_egp):,} - {int(3800000*factor_egp):,} ج.م'
+      ),
+      'تويوتا كورولا (ياباني)': (
+          f'{int(1300000*factor_egp):,} - {int(1450000*factor_egp):,} ج.م'
+      ),
+      'كيا سبورتاج (كوري)': (
+          f'{int(1780000*factor_egp):,} - {int(1950000*factor_egp):,} ج.م'
+      ),
+      'شيري أريزو 5 (صيني)': (
+          f'{int(650000*factor_egp):,} - {int(710000*factor_egp):,} ج.م'
+      ),
   }
-  return cars
 
-
-# ---------------------------------------------------------
-# 7. المؤشرات الاقتصادية الكلية الرسمية (مصر)
-# ---------------------------------------------------------
-def get_egypt_macro_indicators():
-  return {
-      'سعر الفائدة الرئيسي (البنك المركزي CBE)': '19.50%',
-      'سعر فائدة الإقراض لليلة واحدة (CBE)': '20.00%',
-      'سعر فائدة الإيداع لليلة واحدة (CBE)': '18.50%',
-      'معدل التضخم السنوي (CAPMAS / CBE)': '14.5%',
-      'معدل التضخم الأساسي السنوي (CBE)': '14.9%',
-      'معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)': '6.0%',
-      'توقعات نمو الاقتصاد (صندوق النقد الدولي IMF)': '4.7% - 5.1%',
-      'إجمالي المعروض النقدي والسيولة المحلية (M2)': '15.66 تريليون ج.م',
-      'السيولة والودائع بالجهاز المصرفي': '27.49 تريليون ج.م',
-      'احتياطي النقد الأجنبي المباشر (CBE)': '57.34 مليار دولار',
-      'عدد السكان الرسمي بالداخل (CAPMAS)': '107.5 مليون نسمة',
+  cars_omr = {
+      'مرسيدس C200 (ألماني)': (
+          f'{int(24000*factor_omr):,} - {int(27500*factor_omr):,} ر.ع.'
+      ),
+      'تويوتا لاند كروزر (ياباني)': (
+          f'{int(28500*factor_omr):,} - {int(36000*factor_omr):,} ر.ع.'
+      ),
+      'كيا سبورتاج (كوري)': (
+          f'{int(9800*factor_omr):,} - {int(11800*factor_omr):,} ر.ع.'
+      ),
+      'شيري أريزو 5 (صيني)': (
+          f'{int(4800*factor_omr):,} - {int(5600*factor_omr):,} ر.ع.'
+      ),
   }
+
+  return cars_egp, cars_omr
+
+
+# ---------------------------------------------------------
+# 7. المؤشرات الاقتصادية الكلية (مصر وعمان)
+# ---------------------------------------------------------
+def get_combined_macro_indicators():
+  macro_egp = {
+      'سعر الفائدة الرئيسي (CBE)': '19.50%',
+      'معدل التضخم السنوي (CAPMAS)': '14.5%',
+      'توقعات النمو (IMF)': '4.7%',
+      'احتياطي النقد الأجنبي': '57.34 مليار دولار',
+  }
+  macro_omr = {
+      'سعر الفائدة المرجعي (CBO)': '6.00%',
+      'معدل التضخم السنوي (NCSI)': '1.10%',
+      'توقعات النمو (IMF)': '2.7%',
+      'متوسط إنتاج النفط اليومي': '1.01 مليون برميل',
+  }
+  return macro_egp, macro_omr
 
 
 def fetch_technical_data(pair_symbol):
@@ -411,88 +416,124 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد البريد الإلكتروني مع لوجو InfoPulse المائي في خلفية الهيدر
+# 8. توليد التقرير المدمج بالـ HTML المنسق والنظيف
 # ---------------------------------------------------------
-def generate_infopulse_html_email(
+def generate_combined_infopulse_html(
     current_time_str,
     merged_news,
-    forex_rates,
-    forex_ta,
-    commodities,
-    commodities_ta,
+    forex_egp,
+    forex_omr,
+    commodities_egp,
+    commodities_omr,
     crypto_data_list,
-    auto_market_data,
-    egypt_macro,
+    cars_egp,
+    cars_omr,
+    macro_egp,
+    macro_omr,
+    ta_summary,
 ):
 
-  # 1. قائمة الأخبار العامة المدمجة
+  # 1. الأخبار المدمجة
   news_html = ''
   for item in merged_news:
     news_html += f"""
-        <div style="background-color: #ffffff; border-right: 4px solid #10b981; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-            <div style="font-weight: 600; color: #0b192c; font-size: 14px; line-height: 1.5;">{item['title']}</div>
-            <div style="margin-top: 5px;">
-                <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #0284c7; background-color: #f0f9ff; padding: 2px 10px; border-radius: 12px; text-decoration: none; font-weight: 500;">🔗 رابط المصدر</a>
+        <div style="background-color: #ffffff; border-right: 4px solid #10b981; border-radius: 8px; padding: 11px 14px; margin-bottom: 9px; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+            <div style="font-weight: 600; color: #0b192c; font-size: 13.5px; line-height: 1.5;">{item['title']}</div>
+            <div style="margin-top: 4px;">
+                <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #0284c7; background-color: #f0f9ff; padding: 2px 9px; border-radius: 10px; text-decoration: none;">🔗 المصدر</a>
             </div>
         </div>
     """
 
-  # 2. أسعار العملات
-  forex_rows = ''
-  for curr, rate in forex_rates.items():
-    forex_rows += f"""
+  # 2. جدول أسعار العملات المدمج
+  forex_combined_rows = ''
+  keys = list(forex_egp.keys())
+  for k in keys:
+    v_egp = forex_egp.get(k, 0)
+    v_omr = forex_omr.get(k, 0)
+    forex_combined_rows += f"""
         <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 10px 12px; color: #1e293b; font-weight: 500;">{curr}</td>
-            <td style="padding: 10px 12px; font-weight: 700; color: #0b192c; text-align: left;">{rate:,.2f} ج.م</td>
+            <td style="padding: 9px 10px; color: #1e293b; font-weight: 500;">{k}</td>
+            <td style="padding: 9px 10px; font-weight: 700; color: #0b192c; text-align: center;">{v_egp:,.2f} ج.م</td>
+            <td style="padding: 9px 10px; font-weight: 700; color: #0284c7; text-align: center;">{v_omr:,.4f} ر.ع.</td>
         </tr>
     """
 
-  # 3. أسعار الذهب في مصر والمعادن
+  # 3. جدول الذهب والمعادن المدمج
   commodities_rows = ''
-  for item, price in commodities.items():
+  gold_keys = [
+      'الذهب عيار 24 (جرام)',
+      'الذهب عيار 21 (جرام)',
+      'الذهب عيار 18 (جرام)',
+      'الفضة عيار 999 (جرام)',
+  ]
+  for k in gold_keys:
+    cg_egp = commodities_egp.get(k, 0)
+    cg_omr = commodities_omr.get(k, 0)
     commodities_rows += f"""
         <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 10px 12px; color: #1e293b; font-weight: 500;">{item}</td>
-            <td style="padding: 10px 12px; font-weight: 700; color: #d97706; text-align: left;">{price:,.2f} ج.م</td>
+            <td style="padding: 9px 10px; color: #1e293b; font-weight: 500;">{k}</td>
+            <td style="padding: 9px 10px; font-weight: 700; color: #d97706; text-align: center;">{cg_egp:,.1f} ج.م</td>
+            <td style="padding: 9px 10px; font-weight: 700; color: #d97706; text-align: center;">{cg_omr:,.3f} ر.ع.</td>
         </tr>
     """
 
-  # 4. التحليل الفني للعملات الرقمية
+  # 4. العملات الرقمية
   crypto_html = ''
   for c in crypto_data_list:
     badge_bg = '#dcfce7' if c['status_short'] == 'Buy' else '#fee2e2'
     badge_color = '#15803d' if c['status_short'] == 'Buy' else '#b91c1c'
     crypto_html += f"""
-        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 13px; margin-bottom: 9px; background-color: #ffffff;">
             <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
-                <span style="font-weight: 700; color: #0b192c; font-size: 14px;">🪙 {c['name']}</span>
-                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">{c['status_short']}</span>
+                <span style="font-weight: 700; color: #0b192c; font-size: 13.5px;">🪙 {c['name']}</span>
+                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700;">{c['status_short']}</span>
             </div>
-            <div style="margin-top: 6px; font-size: 12px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
-                السعر: <b style="color:#0b192c;">${c['price_usd']:,.2f}</b> ({c['price_egp']:,.0f} ج.م) &bull; RSI: <b>{c['rsi']:.1f}</b> &bull; SMA10: <b>${c['sma10']:,.0f}</b>
+            <div style="margin-top: 5px; font-size: 11.5px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
+                السعر: <b>${c['price_usd']:,.2f}</b> | <b>{c['price_egp']:,.0f} ج.م</b> | <b>{c['price_omr']:,.3f} ر.ع.</b> &bull; RSI: <b>{c['rsi']:.1f}</b>
             </div>
         </div>
     """
 
-  # 5. دليل أسعار السيارات في مصر
-  auto_market_html = ''
-  for brand_cat, models in auto_market_data.items():
-    auto_market_html += f'<h4 style="color: #0b192c; margin: 12px 0 6px 0; font-size: 14px;">{brand_cat}</h4><ul style="margin: 0; padding-right: 18px; font-size: 13px; color: #334155; line-height: 1.7;">'
-    for m_name, m_price in models.items():
-      auto_market_html += (
-          f'<li style="margin-bottom: 4px;"><b>{m_name}:</b> {m_price}</li>'
-      )
-    auto_market_html += '</ul>'
+  # 5. السيارات (مصر وعمان)
+  cars_html = """
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; direction: rtl;">
+        <div style="flex: 1; min-width: 260px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+            <h4 style="margin: 0 0 8px 0; color: #0b192c; font-size: 13.5px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">🇪🇬 السوق المصري (ج.م)</h4>
+            <ul style="margin: 0; padding-right: 16px; font-size: 12.5px; color: #334155; line-height: 1.6;">
+  """
+  for k, v in cars_egp.items():
+    cars_html += f'<li><b>{k}:</b> {v}</li>'
+  cars_html += """
+            </ul>
+        </div>
+        <div style="flex: 1; min-width: 260px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+            <h4 style="margin: 0 0 8px 0; color: #0284c7; font-size: 13.5px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">🇴🇲 السوق العماني (ر.ع.)</h4>
+            <ul style="margin: 0; padding-right: 16px; font-size: 12.5px; color: #334155; line-height: 1.6;">
+  """
+  for k, v in cars_omr.items():
+    cars_html += f'<li><b>{k}:</b> {v}</li>'
+  cars_html += '</ul></div></div>'
 
-  # 6. المؤشرات الاقتصادية الرسمية (مصر)
-  macro_rows = ''
-  for k, v in egypt_macro.items():
-    macro_rows += f"""
-        <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 12px; color: #334155;">{k}</td>
-            <td style="padding: 9px 12px; font-weight: 700; color: #0284c7; text-align: left;">{v}</td>
-        </tr>
-    """
+  # 6. المؤشرات الاقتصادية
+  macro_html = """
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; direction: rtl;">
+        <div style="flex: 1; min-width: 260px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <h4 style="margin: 0 0 8px 0; color: #0b192c; font-size: 13px; font-weight:700;">🇪🇬 مؤشرات اقتصاد مصر</h4>
+            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+  """
+  for k, v in macro_egp.items():
+    macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:5px 0; color:#475569;">{k}</td><td style="padding:5px 0; font-weight:700; color:#0b192c; text-align:left;">{v}</td></tr>'
+  macro_html += """
+            </table>
+        </div>
+        <div style="flex: 1; min-width: 260px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <h4 style="margin: 0 0 8px 0; color: #0284c7; font-size: 13px; font-weight:700;">🇴🇲 مؤشرات اقتصاد عمان</h4>
+            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+  """
+  for k, v in macro_omr.items():
+    macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:5px 0; color:#475569;">{k}</td><td style="padding:5px 0; font-weight:700; color:#0284c7; text-align:left;">{v}</td></tr>'
+  macro_html += '</table></div></div>'
 
   html_template = f"""
     <!DOCTYPE html>
@@ -501,15 +542,14 @@ def generate_infopulse_html_email(
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px 10px; text-align: right; direction: rtl; }}
-            .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; direction: rtl; }}
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 18px 8px; text-align: right; direction: rtl; }}
+            .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; direction: rtl; }}
             
-            /* الهيدر المطور مع اللوجو المائي بالخلفية */
             .header {{ 
                 position: relative; 
                 background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); 
                 color: #ffffff; 
-                padding: 32px 20px 26px 20px; 
+                padding: 30px 20px 24px 20px; 
                 text-align: center; 
                 border-bottom: 4px solid #10b981; 
                 overflow: hidden; 
@@ -525,22 +565,19 @@ def generate_infopulse_html_email(
                 pointer-events: none;
                 z-index: 1;
             }}
-            .header-content {{
-                position: relative;
-                z-index: 2;
-            }}
+            .header-content {{ position: relative; z-index: 2; }}
             
-            .content {{ padding: 25px 20px; text-align: right; direction: rtl; }}
-            .section-title {{ font-size: 16px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 6px; margin-top: 24px; margin-bottom: 14px; font-weight: 700; text-align: right; }}
-            .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 13px; text-align: right; direction: rtl; }}
-            .ta-box {{ background-color: #ecfdf5; border-right: 4px solid #10b981; padding: 10px 14px; font-size: 12px; color: #047857; margin-bottom: 14px; border-radius: 6px; font-weight: 500; line-height: 1.5; }}
-            .footer {{ background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }}
+            .content {{ padding: 22px 18px; text-align: right; direction: rtl; }}
+            .section-title {{ font-size: 15.5px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 5px; margin-top: 22px; margin-bottom: 12px; font-weight: 700; text-align: right; }}
+            .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12.5px; text-align: right; direction: rtl; }}
+            .ta-box {{ background-color: #ecfdf5; border-right: 4px solid #10b981; padding: 9px 12px; font-size: 12px; color: #047857; margin-bottom: 12px; border-radius: 6px; font-weight: 500; line-height: 1.5; }}
+            .footer {{ background-color: #f8fafc; padding: 15px; text-align: center; font-size: 11.5px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }}
         </style>
     </head>
     <body dir="rtl">
         <div class="container" dir="rtl">
             <div class="header">
-                <!-- خلفية مائية لشعار InfoPulse بنسبة شفافية ناعمة (Watermark SVG) -->
+                <!-- خلفية مائية لشعار InfoPulse -->
                 <div class="header-watermark">
                     <svg viewBox="0 0 500 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
                         <path d="M-20 100 H120 L150 40 L180 160 L210 10 L240 140 L270 60 L300 100 H520" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
@@ -551,10 +588,9 @@ def generate_infopulse_html_email(
                     </svg>
                 </div>
 
-                <!-- محتوى الهيدر الرئيسي فوق الخلفية المائية -->
                 <div class="header-content">
-                    <div style="margin-bottom: 8px; text-align: center;">
-                        <svg width="230" height="75" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 230px; height: auto;">
+                    <div style="margin-bottom: 6px; text-align: center;">
+                        <svg width="220" height="70" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 220px; height: auto;">
                             <path d="M10 45 H40 L55 20 L70 70 L85 8 L100 60 L115 30 L130 45 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                             <circle cx="55" cy="20" r="4" fill="#10b981"/>
                             <circle cx="85" cy="8" r="4" fill="#10b981"/>
@@ -564,8 +600,9 @@ def generate_infopulse_html_email(
                             <text x="160" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
                         </svg>
                     </div>
-                    <h2 style="margin:4px 0 0 0; font-size:20px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
-                    <p style="margin:6px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">⏱ التوقيت: {current_time_str}</p>
+                    <h2 style="margin:4px 0 0 0; font-size:19px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
+                    <p style="margin:4px 0 0 0; font-size:12.5px; color:#a7f3d0; font-weight:500;">🇪🇬 جمهورية مصر العربية &bull; 🇴🇲 سلطنة عمان</p>
+                    <p style="margin:4px 0 0 0; font-size:11.5px; color:#94a3b8;">⏱ {current_time_str}</p>
                 </div>
             </div>
             
@@ -575,37 +612,52 @@ def generate_infopulse_html_email(
                 {news_html}
 
                 <!-- 2. أسعار العملات -->
-                <div class="section-title">2️⃣ أسعار العملات</div>
-                <div class="ta-box">{forex_ta}</div>
+                <div class="section-title">2️⃣ أسعار العملات (مصر 🇪🇬 vs سلطنة عمان 🇴🇲)</div>
+                <div class="ta-box">{ta_summary}</div>
                 <table class="table-styled" dir="rtl">
-                    {forex_rows}
+                    <thead>
+                        <tr style="background-color: #f8fafc; color: #475569; font-size: 12px;">
+                            <th style="padding: 8px 10px; text-align: right;">العملة</th>
+                            <th style="padding: 8px 10px; text-align: center;">مصر (ج.م)</th>
+                            <th style="padding: 8px 10px; text-align: center;">عمان (ر.ع.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {forex_combined_rows}
+                    </tbody>
                 </table>
 
-                <!-- 3. أسعار الذهب في مصر (السوق المحلي والمعادن) -->
-                <div class="section-title">3️⃣ أسعار الذهب في مصر (السوق المحلي والمعادن)</div>
-                <div class="ta-box">{commodities_ta}</div>
+                <!-- 3. أسعار الذهب والمعادن -->
+                <div class="section-title">3️⃣ أسعار الذهب والمعادن (السوق المحلي)</div>
                 <table class="table-styled" dir="rtl">
-                    {commodities_rows}
+                    <thead>
+                        <tr style="background-color: #f8fafc; color: #475569; font-size: 12px;">
+                            <th style="padding: 8px 10px; text-align: right;">الصنف</th>
+                            <th style="padding: 8px 10px; text-align: center;">مصر (ج.م)</th>
+                            <th style="padding: 8px 10px; text-align: center;">عمان (ر.ع.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {commodities_rows}
+                    </tbody>
                 </table>
 
-                <!-- 4. التحليل الفني للعملات الرقمية -->
+                <!-- 4. العملات الرقمية -->
                 <div class="section-title">4️⃣ التحليل الفني للعملات الرقمية</div>
                 {crypto_html}
 
-                <!-- 5. دليل أسعار السيارات في مصر -->
-                <div class="section-title">5️⃣ دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)</div>
-                {auto_market_html}
+                <!-- 5. دليل أسعار السيارات -->
+                <div class="section-title">5️⃣ دليل أسعار السيارات</div>
+                {cars_html}
 
-                <!-- 6. المؤشرات الاقتصادية الرسمية (مصر) -->
-                <div class="section-title">6️⃣ المؤشرات الاقتصادية الرسمية (مصر)</div>
-                <table class="table-styled" dir="rtl">
-                    {macro_rows}
-                </table>
+                <!-- 6. المؤشرات الاقتصادية الكلية -->
+                <div class="section-title">6️⃣ المؤشرات الاقتصادية الرسمية</div>
+                {macro_html}
             </div>
 
             <div class="footer">
-                ⚙️ يُولد هذا التقرير المالي تلقائياً عبر السحابة بواسطة <b>InfoPulse | إنفوبلس</b><br>
-                جميع الأسعار مقومة بالجنيه المصري (ج.م).
+                ⚙️ يُولد هذا التقرير المالي الشامل تلقائياً بواسطة <b>InfoPulse | إنفوبلس</b><br>
+                جميع الحقوق محفوظة &copy; 2026
             </div>
         </div>
     </body>
@@ -618,7 +670,7 @@ def generate_infopulse_html_email(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse بستايل الخلفية المائية الهادئ...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse المدمج (مصر + عمان)...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -636,20 +688,21 @@ def main_loop():
     try:
       current_time = time.time()
       (
-          forex_rates,
-          commodities,
+          forex_egp,
+          forex_omr,
+          commodities_egp,
+          commodities_omr,
           usd_egp,
+          usd_omr,
           gold_oz,
-          forex_ta,
-          commodities_ta,
-      ) = get_live_forex_and_commodities()
+          ta_summary,
+      ) = get_live_forex_and_commodities_combined()
       merged_news = fetch_all_merged_news()
-      auto_market_data = get_european_asian_auto_market(usd_egp)
-      egypt_macro = get_egypt_macro_indicators()
+      cars_egp, cars_omr = get_combined_auto_market(usd_egp, usd_omr)
+      macro_egp, macro_omr = get_combined_macro_indicators()
       current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
 
       crypto_data_list = []
-      crypto_msg_tg = '\n📊 التحليل الفني للعملات الرقمية:\n===================================\n'
       wa_crypto_details = ''
 
       for name, pair in crypto_pairs.items():
@@ -657,6 +710,7 @@ def main_loop():
         if cdata:
           price_usd = cdata['Price']
           price_egp = price_usd * usd_egp
+          price_omr = price_usd * usd_omr
           rsi = cdata['RSI']
           sma10 = cdata['SMA_10']
           sma30 = cdata['SMA_30']
@@ -676,42 +730,36 @@ def main_loop():
               'name': name,
               'price_usd': price_usd,
               'price_egp': price_egp,
+              'price_omr': price_omr,
               'rsi': rsi,
-              'sma10': sma10,
-              'sma30': sma30,
               'status_short': status_short,
           })
 
-          crypto_msg_tg += f'🪙 {name}: ${price_usd:,.2f} ({price_egp:,.0f} ج.م) | RSI:{rsi:.1f} ({status_short})\n'
           short_name = name.split(' ')[0]
           wa_crypto_details += f'• {short_name}: ${price_usd:,.2f} | RSI:{rsi:.1f} ({status_short})\n'
 
         time.sleep(0.2)
 
-      news_tg_summary = '1️⃣ أهم الأخبار الاقتصادية العامة:\n'
+      news_summary = '1️⃣ أهم الأخبار الاقتصادية:\n'
       for i in merged_news[:4]:
-        news_tg_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
+        news_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
 
       # --- 1. إرسال تيليجرام (كل 6 ساعات) ---
       if (
           current_time - last_telegram_time >= (TELEGRAM_INTERVAL_HOURS * 3600)
           or last_telegram_time == 0
       ):
-        tg_report = f"""📊 التطورات الاقتصادية من إنفوبلس
+        tg_report = f"""📊 التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & عمان 🇴🇲)
 ⏱ التوقيت: {current_time_str}
 ===================================
-{news_tg_summary}
-2️⃣ أسعار العملات:
-• USD: {usd_egp:.2f} ج.م | EUR: {forex_rates.get('EUR (يورو أوروبي)', 0):.2f} ج.م
-• CNY (اليوان الصيني): {forex_rates.get('CNY (يوان صيني)', 0):.2f} ج.م
+{news_summary}
+2️⃣ أسعار العملات والذهب:
+• USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
+• الذهب عيار 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
 
-3️⃣ أسعار الذهب في مصر:
-• عيار 21: {commodities.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م
-• الجنيه الذهب: {commodities.get('الجنيه الذهب (8 جرام عيار 21)', 0):,.0f} ج.م
-
-4️⃣ العملات الرقمية:
+3️⃣ العملات الرقمية:
 {wa_crypto_details}
-⚙️ InfoPulse Automated Engine"""
+⚙️ InfoPulse Combined Engine"""
 
         if send_telegram_message(tg_report):
           print('✅ تم إرسال تقرير تيليجرام بنجاح.', flush=True)
@@ -722,12 +770,12 @@ def main_loop():
           current_time - last_whatsapp_time >= (WHATSAPP_INTERVAL_HOURS * 3600)
           or last_whatsapp_time == 0
       ):
-        wa_msg = f"""📊 *التطورات الاقتصادية من إنفوبلس*
+        wa_msg = f"""📊 *التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & عمان 🇴🇲)*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز عناوين الأخبار:*
-• USD: {usd_egp:.2f} ج.م | CNY: {forex_rates.get('CNY (يوان صيني)', 0):.2f} ج.م
-• الذهب عيار 21: {commodities.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م
+📰 *أبرز الأسعار:*
+• USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
+• الذهب 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
 -----------------------------------
 🪙 *العملات الرقمية:*
 {wa_crypto_details}-----------------------------------
@@ -742,22 +790,28 @@ def main_loop():
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
       ):
-        email_html = generate_infopulse_html_email(
+        email_html = generate_combined_infopulse_html(
             current_time_str,
             merged_news,
-            forex_rates,
-            forex_ta,
-            commodities,
-            commodities_ta,
+            forex_egp,
+            forex_omr,
+            commodities_egp,
+            commodities_omr,
             crypto_data_list,
-            auto_market_data,
-            egypt_macro,
+            cars_egp,
+            cars_omr,
+            macro_egp,
+            macro_omr,
+            ta_summary,
         )
 
-        subject = f'التطورات الاقتصادية من إنفوبلس - {current_time_str}'
+        subject = (
+            'التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & سلطنة عمان 🇴🇲) -'
+            f' {current_time_str}'
+        )
 
         if send_email_report(subject, email_html):
-          print('✅ تم إرسال بريد إنفوبلس المحدث بنجاح.', flush=True)
+          print('✅ تم إرسال البريد المدمج المنسق بنجاح.', flush=True)
           last_email_time = current_time
 
     except Exception as e:

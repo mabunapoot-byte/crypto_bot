@@ -173,7 +173,7 @@ def fetch_all_merged_news():
 
 
 # ---------------------------------------------------------
-# 5. البيانات المالية الشاملة لجميع عيارات الذهب والفضة والسلع
+# 5. البيانات المالية الشاملة (العملات + الذهب بالسوق المحلي العماني والمصري)
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -214,8 +214,13 @@ def get_live_forex_and_commodities_full():
     usd_egp = rates.get('EGP', 47.4)
     usd_omr = rates.get('OMR', 0.3845)
 
+    egp_per_omr = usd_egp / usd_omr  # سعر الريال العماني بالجنيه المصري
+    omr_per_egp = usd_omr / usd_egp  # سعر الجنيه المصري بالريال العماني
+
+    # 1. أسعار العملات الشاملة (تتضمن EGP و OMR)
     forex_egp = {
         'USD (دولار أمريكي)': usd_egp,
+        'OMR (ريال عماني)': egp_per_omr,
         'EUR (يورو أوروبي)': (
             (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0
         ),
@@ -234,10 +239,12 @@ def get_live_forex_and_commodities_full():
         'CNY (يوان صيني)': (
             (usd_egp / rates.get('CNY', 7.23)) if rates.get('CNY') else 0
         ),
+        'EGP (جنيه مصري)': 1.00,
     }
 
     forex_omr = {
         'USD (دولار أمريكي)': usd_omr,
+        'OMR (ريال عماني)': 1.0000,
         'EUR (يورو أوروبي)': (
             (usd_omr / rates.get('EUR', 1.0)) if rates.get('EUR') else 0.415
         ),
@@ -256,6 +263,7 @@ def get_live_forex_and_commodities_full():
         'CNY (يوان صيني)': (
             (usd_omr / rates.get('CNY', 7.23)) if rates.get('CNY') else 0.0532
         ),
+        'EGP (جنيه مصري)': omr_per_egp,
     }
 
     try:
@@ -275,6 +283,7 @@ def get_live_forex_and_commodities_full():
     except Exception:
       silver_oz_usd = 31.5
 
+    # 2. أسعار الذهب والسلع بمصر (سوق محلي)
     g21_egp = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
     g24_egp = g21_egp * (24 / 21)
     silver_999_egp = (silver_oz_usd / 31.1035) * usd_egp
@@ -298,18 +307,20 @@ def get_live_forex_and_commodities_full():
         'النحاس الصناعي (طن)': 9500.0 * usd_egp,
     }
 
+    # 3. أسعار الذهب والسلع بالسلطنة (سوق محلي عماني)
     g24_omr = (gold_oz_usd / 31.1035) * usd_omr
+    g22_omr = g24_omr * (22 / 24)  # متداول بكثرة بالسوق العماني
     g21_omr = g24_omr * (21 / 24)
     silver_999_omr = (silver_oz_usd / 31.1035) * usd_omr
 
     commodities_omr = {
         'الذهب عيار 24 (جرام)': g24_omr,
-        'الذهب عيار 22 (جرام)': g24_omr * (22 / 24),
+        'الذهب عيار 22 (جرام)': g22_omr,
         'الذهب عيار 21 (جرام)': g21_omr,
         'الذهب عيار 18 (جرام)': g24_omr * (18 / 24),
         'الذهب عيار 14 (جرام)': g24_omr * (14 / 24),
         'الذهب عيار 12 (جرام)': g24_omr * (12 / 24),
-        'الريال الذهب (8 جرام عيار 21)': g21_omr * 8,
+        'الريال الذهب (8 جرام عيار 22 عماني)': g22_omr * 8,
         'أونصة الذهب عمانياً (31.1 جرام عيار 24)': g24_omr * 31.1035,
         'الفضة عيار 999 (سبيكة/جرام)': silver_999_omr,
         'الفضة عيار 925 (استرليني/جرام)': silver_999_omr * 0.925,
@@ -344,7 +355,7 @@ def get_live_forex_and_commodities_full():
 
 
 # ---------------------------------------------------------
-# 6. لوجوهات الشركات الصانعة وتوليد جدول متوسط أسعار السيارات الموحد
+# 6. لوجوهات الشركات الصانعة وتوليد جدول متوسط أسعار السيارات
 # ---------------------------------------------------------
 CAR_LOGOS_SVG = {
     'Mercedes': (
@@ -444,7 +455,6 @@ def get_unified_car_rows(usd_egp, usd_omr):
   factor_egp = usd_egp / 47.4
   factor_omr = usd_omr / 0.3845
 
-  # قائمة السيارات الشاملة باسم الموديل مرة واحدة ومتوسط السعر التقريبي لكل دولة
   car_list = [
       {
           'logo': CAR_LOGOS_SVG['Mercedes'],
@@ -544,7 +554,7 @@ def get_unified_car_rows(usd_egp, usd_omr):
 
 
 # ---------------------------------------------------------
-# 7. المؤشرات الاقتصادية الرسمية الشاملة (مصر وعمان)
+# 7. المؤشرات الاقتصادية الرسمية الشاملة (المعدلة والمطابقة)
 # ---------------------------------------------------------
 def get_full_macro_indicators():
   macro_egp = {
@@ -559,18 +569,21 @@ def get_full_macro_indicators():
       'السيولة والودائع بالجهاز المصرفي': '27.49 تريليون ج.م',
       'احتياطي النقد الأجنبي المباشر (CBE)': '57.34 مليار دولار',
       'عدد السكان الرسمي بالداخل (CAPMAS)': '107.5 مليون نسمة',
+      'التصنيف الائتماني (Standard & Poor\'s)': 'B/B (نظرة مستقبلية مستقرة)',
   }
 
   macro_omr = {
       'سعر الفائدة المرجعي (البنك المركزي العماني CBO)': '6.00%',
       'معدل التضخم السنوي (المركز الوطني للإحصاء NCSI)': '1.10%',
       'معدل نمو الناتج المحلي الإجمالي (IMF / Oman)': '2.7%',
+      'معدل البطالة العام (NCSI Oman)': '2.3%',
+      'إجمالي المعروض النقدي والسيولة M2 (CBO)': '24.2 مليار ريال عماني',
       'متوسط إنتاج النفط اليومي (وزارة الطاقة)': '1.01 مليون برميل/يوم',
       'متوسط سعر برميل النفط العماني': '82.50 دولار',
       'الفائض في الميزانية العامة للدولة': '520 مليون ريال عماني',
       'احتياطيات النقد الأجنبي (البنك المركزي CBO)': '6.85 مليار ريال عماني',
+      'عدد السكان الرسمي (المركز الوطني NCSI)': '5.4 مليون نسمة',
       'التصنيف الائتماني (Standard & Poor\'s)': 'BB+ (نظرة مستقبلية إيجابية)',
-      'معدل البطالة العام (NCSI)': '2.3%',
   }
 
   return macro_egp, macro_omr
@@ -616,7 +629,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد التقرير المدمج بالتصميم المتوافق 100% مع الموبايل
+# 8. توليد التقرير المدمج بطريقة الاستبدال الآمن
 # ---------------------------------------------------------
 def generate_complete_infopulse_html(
     current_time_str,
@@ -644,20 +657,25 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 2. أسعار العملات
+  # 2. أسعار العملات (شاملة EGP و OMR)
   forex_combined_rows = ''
   for k in forex_egp.keys():
     v_egp = forex_egp.get(k, 0)
     v_omr = forex_omr.get(k, 0)
+
+    # تنسيق خاص بالأرقام الصغيرة للجنيه مقابل الريال العماني
+    fmt_egp = f'{v_egp:,.2f} ج.م' if v_egp >= 0.01 else f'{v_egp:,.4f} ج.م'
+    fmt_omr = f'{v_omr:,.4f} ر.ع.' if v_omr < 100 else f'{v_omr:,.2f} ر.ع.'
+
     forex_combined_rows += f"""
         <tr style="border-bottom: 1px solid #f1f5f9;">
             <td style="padding: 9px 10px; color: #1e293b; font-weight: 500;">{k}</td>
-            <td style="padding: 9px 10px; font-weight: 700; color: #0b192c; text-align: center;">{v_egp:,.2f} ج.م</td>
-            <td style="padding: 9px 10px; font-weight: 700; color: #0284c7; text-align: center;">{v_omr:,.4f} ر.ع.</td>
+            <td style="padding: 9px 10px; font-weight: 700; color: #0b192c; text-align: center;">{fmt_egp}</td>
+            <td style="padding: 9px 10px; font-weight: 700; color: #0284c7; text-align: center;">{fmt_omr}</td>
         </tr>
     """
 
-  # 3. المعادن والسلع بالكامل
+  # 3. المعادن والسلع بالكامل (مصر وعمان)
   commodities_rows = ''
   for k in commodities_egp.keys():
     cg_egp = commodities_egp.get(k, 0)
@@ -691,12 +709,11 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 5. المؤشرات الاقتصادية ككروت متتابعة رأسيًا (تضمن العرض التام على الموبايل)
+  # 5. المؤشرات الاقتصادية (متطابقة ومجهزة للعرض الرأسي للموبايل)
   macro_html = """
     <div style="width: 100%; box-sizing: border-box;">
-        <!-- كارت اقتصاد مصر -->
         <div style="width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-sizing: border-box;">
-            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 13.5px; font-weight:700; border-bottom:2px solid #10b981; padding-bottom:5px;">🇪🇬 مؤشرات اقتصاد مصر (CBE / CAPMAS)</h4>
+            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 13.5px; font-weight:700; border-bottom:2px solid #10b981; padding-bottom:5px;">🇪🇬 مؤشرات اقتصاد مصر (CBE / CAPMAS / S&P)</h4>
             <table style="width:100%; font-size:12px; border-collapse:collapse;">
   """
   for k, v in macro_egp.items():
@@ -704,16 +721,15 @@ def generate_complete_infopulse_html(
   macro_html += """
             </table>
         </div>
-        <!-- كارت اقتصاد عمان -->
         <div style="width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; box-sizing: border-box;">
-            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 13.5px; font-weight:700; border-bottom:2px solid #0284c7; padding-bottom:5px;">🇴🇲 مؤشرات اقتصاد عمان (CBO / NCSI)</h4>
+            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 13.5px; font-weight:700; border-bottom:2px solid #0284c7; padding-bottom:5px;">🇴🇲 مؤشرات اقتصاد عمان (CBO / NCSI / S&P)</h4>
             <table style="width:100%; font-size:12px; border-collapse:collapse;">
   """
   for k, v in macro_omr.items():
     macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:#475569;">{k}</td><td style="padding:6px 0; font-weight:700; color:#0284c7; text-align:left;">{v}</td></tr>'
   macro_html += '</table></div></div>'
 
-  # قالب HTML الآمن
+  # قالب HTML المحدث والآمن
   html_template = """<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -841,7 +857,7 @@ def generate_complete_infopulse_html(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse بجدول السيارات والمؤشرات المحسنة للموبايل...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse بجميع التعديلات والمؤشرات الأخيرة...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -926,6 +942,7 @@ def main_loop():
 {news_summary}
 2️⃣ أسعار العملات والذهب:
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
+• OMR مقابل EGP: 1 ر.ع. = {usd_egp/usd_omr:.2f} ج.م
 • الذهب عيار 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
 
 3️⃣ العملات الرقمية:
@@ -946,6 +963,7 @@ def main_loop():
 -----------------------------------
 📰 *أبرز الأسعار:*
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
+• OMR/EGP: {usd_egp/usd_omr:.2f} ج.م لكل ريال
 • الذهب 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
 -----------------------------------
 🪙 *العملات الرقمية:*

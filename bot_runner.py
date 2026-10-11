@@ -178,7 +178,7 @@ def fetch_all_merged_news():
 
 
 # ---------------------------------------------------------
-# 5. البيانات المالية المحدثة والمصححة لسوق الذهب العماني والمصري
+# 5. البيانات المالية المحدثة (العملات + المعادن والسلع + المحروقات والغاز)
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -222,10 +222,9 @@ def get_live_forex_and_commodities_full():
     egp_per_omr = usd_egp / usd_omr
     omr_per_egp = usd_omr / usd_egp
 
-    # 1. أسعار العملات
+    # 1. أسعار العملات مرتبة حسب الأكثر تداولاً عالمياً وإقليمياً
     forex_egp = {
         'USD (دولار أمريكي)': usd_egp,
-        'OMR (ريال عماني)': egp_per_omr,
         'EUR (يورو أوروبي)': (
             (usd_egp / rates.get('EUR', 1.0)) if rates.get('EUR') else 0
         ),
@@ -238,18 +237,17 @@ def get_live_forex_and_commodities_full():
         'AED (درهم إماراتي)': (
             (usd_egp / rates.get('AED', 3.67)) if rates.get('AED') else 0
         ),
+        'OMR (ريال عماني)': egp_per_omr,
         'KWD (دينار كويتي)': (
             (usd_egp / rates.get('KWD', 0.30)) if rates.get('KWD') else 0
         ),
         'CNY (يوان صيني)': (
             (usd_egp / rates.get('CNY', 7.23)) if rates.get('CNY') else 0
         ),
-        'EGP (جنيه مصري)': 1.00,
     }
 
     forex_omr = {
         'USD (دولار أمريكي)': usd_omr,
-        'OMR (ريال عماني)': 1.0000,
         'EUR (يورو أوروبي)': (
             (usd_omr / rates.get('EUR', 1.0)) if rates.get('EUR') else 0.415
         ),
@@ -262,16 +260,16 @@ def get_live_forex_and_commodities_full():
         'AED (درهم إماراتي)': (
             (usd_omr / rates.get('AED', 3.67)) if rates.get('AED') else 0.1047
         ),
+        'EGP (جنيه مصري)': omr_per_egp,
         'KWD (دينار كويتي)': (
             (usd_omr / rates.get('KWD', 0.30)) if rates.get('KWD') else 1.255
         ),
         'CNY (يوان صيني)': (
             (usd_omr / rates.get('CNY', 7.23)) if rates.get('CNY') else 0.0532
         ),
-        'EGP (جنيه مصري)': omr_per_egp,
     }
 
-    # تحديث سعر الأونصة العالمي الفعلي (حوالي $4,195 - $4,200)
+    # الأونصة والفضة
     try:
       r_gold = requests.get(
           'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
@@ -291,7 +289,7 @@ def get_live_forex_and_commodities_full():
     except Exception:
       silver_oz_usd = 31.5
 
-    # 2. أسعار الذهب والسلع بمصر
+    # 2. أسعار الذهب والسلع والمحروقات - مصر (ج.م)
     g21_egp = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
     g24_egp = g21_egp * (24 / 21)
     silver_999_egp = (silver_oz_usd / 31.1035) * usd_egp
@@ -304,18 +302,21 @@ def get_live_forex_and_commodities_full():
         'الذهب عيار 14 (جرام)': g24_egp * (14 / 24),
         'الذهب عيار 12 (جرام)': g24_egp * (12 / 24),
         'الجنيه الذهب (8 جرام عيار 21)': g21_egp * 8,
-        'أونصة الذهب محلياً (31.1 جرام عيار 24)': g24_egp * 31.1035,
-        'الفضة عيار 999 (سبيكة/جرام)': silver_999_egp,
-        'الفضة عيار 925 (استرليني/جرام)': silver_999_egp * 0.925,
-        'الفضة عيار 900 (جرام)': silver_999_egp * 0.900,
-        'الفضة عيار 800 (مجوهرات/جرام)': silver_999_egp * 0.800,
+        'أونصة الذهب محلياً (31.1 جرام)': g24_egp * 31.1035,
+        'الفضة عيار 999 (جرام)': silver_999_egp,
+        'الفضة عيار 925 (جرام)': silver_999_egp * 0.925,
+        'بنزين 95 الممتاز (لتر)': 24.00,
+        'بنزين 92 العادي (لتر)': 22.25,
+        'بنزين 80 (لتر)': 20.75,
+        'السولار / الديزل (لتر)': 20.50,
+        'غاز تموين السيارات (م³)': 13.00,
+        'الغاز الطبيعي للمنازل (م³ شريحة 1)': 5.00,
         'النفط خام برنت (برميل)': 78.5 * usd_egp,
         'القمح العالمي (طن)': 245.0 * usd_egp,
-        'الذرة العالمية (طن)': 175.0 * usd_egp,
         'النحاس الصناعي (طن)': 9500.0 * usd_egp,
     }
 
-    # 3. أسعار الذهب والسلع بالسلطنة (مطابقة تماماً لسوق عمان المحلي)
+    # 3. أسعار الذهب والسلع والمحروقات - سلطنة عمان (ر.ع.)
     g24_omr = (gold_oz_usd / 31.1035) * usd_omr  # ≈ 51.94 ر.ع.
     g22_omr = g24_omr * (22 / 24)  # ≈ 47.61 ر.ع.
     g21_omr = g24_omr * (21 / 24)  # ≈ 45.45 ر.ع.
@@ -329,23 +330,24 @@ def get_live_forex_and_commodities_full():
         'الذهب عيار 18 (جرام)': g18_omr,
         'الذهب عيار 14 (جرام)': g24_omr * (14 / 24),
         'الذهب عيار 12 (جرام)': g24_omr * (12 / 24),
-        'الريال الذهب (8 جرام عيار 21/22 عماني)': g21_omr * 8,
-        'أونصة الذهب عمانياً (31.1 جرام عيار 24)': g24_omr * 31.1035,
-        'الفضة عيار 999 (سبيكة/جرام)': silver_999_omr,
-        'الفضة عيار 925 (استرليني/جرام)': silver_999_omr * 0.925,
-        'الفضة عيار 900 (جرام)': silver_999_omr * 0.900,
-        'الفضة عيار 800 (مجوهرات/جرام)': silver_999_omr * 0.800,
+        'الريال الذهب (8 جرام عيار 21/22)': g21_omr * 8,
+        'أونصة الذهب عمانياً (31.1 جرام)': g24_omr * 31.1035,
+        'الفضة عيار 999 (جرام)': silver_999_omr,
+        'الفضة عيار 925 (جرام)': silver_999_omr * 0.925,
+        'بنزين ممتاز 95 (لتر)': 0.239,
+        'بنزين عادي 91 (لتر)': 0.229,
+        'الديزل / السولار (لتر)': 0.258,
+        'غاز السيارات والمنازل (م³)': 0.180,
         'النفط خام عمان (برميل)': 79.2 * usd_omr,
         'النفط خام برنت (برميل)': 78.5 * usd_omr,
         'القمح العالمي (طن)': 245.0 * usd_omr,
-        'الذرة العالمية (طن)': 175.0 * usd_omr,
         'النحاس الصناعي (طن)': 9500.0 * usd_omr,
     }
 
     ta_summary = (
         '🟢 التحليل الفني الشامل: استقرار وتوازنات نقدية متينة في الجهاز'
         ' المصرفي بمصر وعمان مع حركة عرضية متوازنة لأسواق الذهب محلياً تزامناً'
-        ' مع أداء الأونصة عالمياً.'
+        ' مع أداء الأونصة عالمياً واستقرار تسعيرة الوقود والمحروقات الرسمية.'
     )
 
     return (
@@ -364,7 +366,7 @@ def get_live_forex_and_commodities_full():
 
 
 # ---------------------------------------------------------
-# 6. الشارات المجهزة للشركات الصانعة (بديل 100% متوافق مع Gmail والموبايل)
+# 6. الشارات المجهزة للشركات الصانعة للسيارات
 # ---------------------------------------------------------
 CAR_LOGOS_BADGES = {
     'Mercedes': (
@@ -447,82 +449,108 @@ def get_unified_car_rows(usd_egp, usd_omr):
   factor_egp = usd_egp / 47.4
   factor_omr = usd_omr / 0.3845
 
+  # قائمة السيارات دون كتابة الاسم التجاري للشركة أو بلد الصنع (اكتفاء باللوجو والموديل)
+  # تتضمن موديلات التويوتا والنيسان الدفع الرباعي والدبل كابينة بمختلف فئاتها
   car_list = [
       {
           'logo': CAR_LOGOS_BADGES['Mercedes'],
-          'name': 'مرسيدس C200 (ألماني)',
+          'name': 'C200',
           'avg_egp': int(3600000 * factor_egp),
           'avg_omr': int(25750 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_BADGES['BMW'],
-          'name': 'بي إم دبليو 320i (ألماني)',
+          'name': '320i',
           'avg_egp': int(3400000 * factor_egp),
           'avg_omr': int(24250 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_BADGES['VW'],
-          'name': 'فولكس فاجن ID.4 (كهرباء)',
+          'name': 'ID.4 (Electric)',
           'avg_egp': int(1750000 * factor_egp),
           'avg_omr': int(14650 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_BADGES['Peugeot'],
-          'name': 'بيجو 408 (فرنسي)',
-          'avg_egp': int(2050000 * factor_egp),
-          'avg_omr': int(13650 * factor_omr),
-      },
-      {
-          'logo': CAR_LOGOS_BADGES['Skoda'],
-          'name': 'سكودا أوكتافيا (تشيكي)',
-          'avg_egp': int(1890000 * factor_egp),
-          'avg_omr': int(11350 * factor_omr),
-      },
-      {
-          'logo': CAR_LOGOS_BADGES['Renault'],
-          'name': 'رينو ميجان (فرنسي)',
-          'avg_egp': int(1335000 * factor_egp),
-          'avg_omr': int(8500 * factor_omr),
+          'logo': CAR_LOGOS_BADGES['Toyota'],
+          'name': 'Land Cruiser V8 / V6 4x4',
+          'avg_egp': int(5200000 * factor_egp),
+          'avg_omr': int(34500 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_BADGES['Toyota'],
-          'name': 'تويوتا كورولا (ياباني)',
+          'name': 'Prado TXL 4x4',
+          'avg_egp': int(3950000 * factor_egp),
+          'avg_omr': int(21800 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Toyota'],
+          'name': 'Fortuner 4x4 / 4x2',
+          'avg_egp': int(3250000 * factor_egp),
+          'avg_omr': int(15200 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Toyota'],
+          'name': 'Hilux Double Cab 4x4',
+          'avg_egp': int(2150000 * factor_egp),
+          'avg_omr': int(12400 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Toyota'],
+          'name': 'Corolla',
           'avg_egp': int(1375000 * factor_egp),
           'avg_omr': int(7900 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_BADGES['Nissan'],
-          'name': 'نيسان صني (ياباني)',
+          'name': 'Patrol V8 / V6 4x4',
+          'avg_egp': int(4850000 * factor_egp),
+          'avg_omr': int(29800 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Nissan'],
+          'name': 'Navara Double Cab 4x4',
+          'avg_egp': int(1850000 * factor_egp),
+          'avg_omr': int(10800 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Nissan'],
+          'name': 'X-Trail 4x4',
+          'avg_egp': int(2100000 * factor_egp),
+          'avg_omr': int(11900 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Nissan'],
+          'name': 'Sunny',
           'avg_egp': int(722500 * factor_egp),
           'avg_omr': int(5800 * factor_omr),
       },
       {
+          'logo': CAR_LOGOS_BADGES['Peugeot'],
+          'name': '408',
+          'avg_egp': int(2050000 * factor_egp),
+          'avg_omr': int(13650 * factor_omr),
+      },
+      {
+          'logo': CAR_LOGOS_BADGES['Skoda'],
+          'name': 'Octavia',
+          'avg_egp': int(1890000 * factor_egp),
+          'avg_omr': int(11350 * factor_omr),
+      },
+      {
           'logo': CAR_LOGOS_BADGES['Hyundai'],
-          'name': 'هيونداي إلترا / أكسنت',
+          'name': 'Elantra / Accent',
           'avg_egp': int(935000 * factor_egp),
           'avg_omr': int(6250 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_BADGES['Kia'],
-          'name': 'كيا سبورتاج (كوري)',
+          'name': 'Sportage',
           'avg_egp': int(1865000 * factor_egp),
           'avg_omr': int(10800 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_BADGES['Chery'],
-          'name': 'شيري أريزو 5 (صيني)',
-          'avg_egp': int(680000 * factor_egp),
-          'avg_omr': int(5200 * factor_omr),
-      },
-      {
-          'logo': CAR_LOGOS_BADGES['MG'],
-          'name': 'إم جي ZS (صيني)',
-          'avg_egp': int(1012500 * factor_egp),
-          'avg_omr': int(6800 * factor_omr),
-      },
-      {
           'logo': CAR_LOGOS_BADGES['BYD'],
-          'name': 'BYD Song Plus (كهرباء)',
+          'name': 'Song Plus (EV)',
           'avg_egp': int(1635000 * factor_egp),
           'avg_omr': int(12350 * factor_omr),
       },
@@ -621,7 +649,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد التقرير المدمج بالهيكل الآمن
+# 8. توليد التقرير المدمج بالترتيب والتنسيق التنفيذي
 # ---------------------------------------------------------
 def generate_complete_infopulse_html(
     current_time_str,
@@ -649,7 +677,7 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 2. أسعار العملات
+  # 2. أسعار العملات (مرتبة حسب حجم التداول)
   forex_combined_rows = ''
   for k in forex_egp.keys():
     v_egp = forex_egp.get(k, 0)
@@ -666,14 +694,18 @@ def generate_complete_infopulse_html(
         </tr>
     """
 
-  # 3. المعادن والسلع بالكامل (المعدلة لسوق عمان ومصر)
+  # 3. المعادن، السلع، المحروقات والغاز
   commodities_rows = ''
   for k in commodities_egp.keys():
     cg_egp = commodities_egp.get(k, 0)
     cg_omr = commodities_omr.get(k, 0)
 
     fmt_egp = f'{cg_egp:,.2f} ج.م' if cg_egp else '-'
-    fmt_omr = f'{cg_omr:,.3f} ر.ع.' if cg_omr else '-'
+    fmt_omr = (
+        f'{cg_omr:,.3f} ر.ع.'
+        if cg_omr and cg_omr < 100
+        else (f'{cg_omr:,.2f} ر.ع.' if cg_omr else '-')
+    )
 
     commodities_rows += f"""
         <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -683,24 +715,7 @@ def generate_complete_infopulse_html(
         </tr>
     """
 
-  # 4. العملات الرقمية
-  crypto_html = ''
-  for c in crypto_data_list:
-    badge_bg = '#dcfce7' if c['status_short'] == 'Buy' else '#fee2e2'
-    badge_color = '#15803d' if c['status_short'] == 'Buy' else '#b91c1c'
-    crypto_html += f"""
-        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 13px; margin-bottom: 9px; background-color: #ffffff;">
-            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
-                <span style="font-weight: 700; color: #0b192c; font-size: 13.5px;">🪙 {c['name']}</span>
-                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700;">{c['status_short']}</span>
-            </div>
-            <div style="margin-top: 5px; font-size: 11.5px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
-                السعر: <b>${c['price_usd']:,.2f}</b> | <b>{c['price_egp']:,.0f} ج.م</b> | <b>{c['price_omr']:,.3f} ر.ع.</b> &bull; RSI: <b>{c['rsi']:.1f}</b>
-            </div>
-        </div>
-    """
-
-  # 5. المؤشرات الاقتصادية
+  # 4. المؤشرات الاقتصادية
   macro_html = """
     <div style="width: 100%; box-sizing: border-box;">
         <div style="width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-sizing: border-box;">
@@ -720,7 +735,24 @@ def generate_complete_infopulse_html(
     macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:#475569;">{k}</td><td style="padding:6px 0; font-weight:700; color:#0284c7; text-align:left;">{v}</td></tr>'
   macro_html += '</table></div></div>'
 
-  # القالب المصمم للهواتف المحمولة
+  # 5. العملات الرقمية
+  crypto_html = ''
+  for c in crypto_data_list:
+    badge_bg = '#dcfce7' if c['status_short'] == 'Buy' else '#fee2e2'
+    badge_color = '#15803d' if c['status_short'] == 'Buy' else '#b91c1c'
+    crypto_html += f"""
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 13px; margin-bottom: 9px; background-color: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                <span style="font-weight: 700; color: #0b192c; font-size: 13.5px;">🪙 {c['name']}</span>
+                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700;">{c['status_short']}</span>
+            </div>
+            <div style="margin-top: 5px; font-size: 11.5px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
+                السعر: <b>${c['price_usd']:,.2f}</b> | <b>{c['price_egp']:,.0f} ج.م</b> | <b>{c['price_omr']:,.3f} ر.ع.</b> &bull; RSI: <b>{c['rsi']:.1f}</b>
+            </div>
+        </div>
+    """
+
+  # القالب المصمم بالكامل للتصفح المريح على الموبايل والبريد
   html_template = """<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -770,10 +802,12 @@ def generate_complete_infopulse_html(
         </div>
         
         <div class="content" dir="rtl">
-            <div class="section-title">1️⃣ أهم الأخبار الاقتصادية العامة</div>
+            <!-- 1. موجز الأخبار الاقتصادية -->
+            <div class="section-title">1️⃣ موجز الأخبار الاقتصادية الهامة</div>
             __NEWS_HTML__
 
-            <div class="section-title">2️⃣ أسعار العملات</div>
+            <!-- 2. أسعار العملات -->
+            <div class="section-title">2️⃣ أسعار العملات (مرتبة حسب الأكثر تداولاً)</div>
             <div class="ta-box">__TA_SUMMARY__</div>
             <table class="table-styled" dir="rtl">
                 <thead>
@@ -788,11 +822,12 @@ def generate_complete_infopulse_html(
                 </tbody>
             </table>
 
-            <div class="section-title">3️⃣ أسعار المعادن والسلع الكاملة (السوق المحلي)</div>
+            <!-- 3. أسعار المعادن والسلع والمحروقات -->
+            <div class="section-title">3️⃣ أسعار المعادن، الطاقة والوقود (السوق المحلي)</div>
             <table class="table-styled" dir="rtl">
                 <thead>
                     <tr style="background-color: #f8fafc; color: #475569; font-size: 11.5px;">
-                        <th style="padding: 8px 8px; text-align: right;">الصنف / المعدن</th>
+                        <th style="padding: 8px 8px; text-align: right;">الصنف / المعدن / الوقود</th>
                         <th style="padding: 8px 8px; text-align: center;">مصر (ج.م)</th>
                         <th style="padding: 8px 8px; text-align: center;">عمان (ر.ع.)</th>
                     </tr>
@@ -802,16 +837,18 @@ def generate_complete_infopulse_html(
                 </tbody>
             </table>
 
-            <div class="section-title">4️⃣ التحليل الفني للعملات الرقمية</div>
-            __CRYPTO_HTML__
+            <!-- 4. المؤشرات الاقتصادية الرسمية -->
+            <div class="section-title">4️⃣ المؤشرات الاقتصادية الرسمية الشاملة</div>
+            __MACRO_HTML__
 
-            <div class="section-title">5️⃣ دليل أسعار السيارات (متوسط السعر لكل دولة)</div>
+            <!-- 5. دليل أسعار السيارات -->
+            <div class="section-title">5️⃣ دليل أسعار السيارات (الدفع الرباعي والدبل كابينة)</div>
             <table class="table-styled" dir="rtl">
                 <thead>
                     <tr style="background-color: #f8fafc; color: #475569; font-size: 11.5px;">
-                        <th style="padding: 8px 6px; text-align: right; width: 42%;">السيارة (اللوجو والموديل)</th>
-                        <th style="padding: 8px 4px; text-align: center; width: 29%;">متوسط مصر (ج.م)</th>
-                        <th style="padding: 8px 4px; text-align: center; width: 29%;">متوسط عمان (ر.ع.)</th>
+                        <th style="padding: 8px 6px; text-align: right; width: 44%;">السيارة (اللوجو والموديل)</th>
+                        <th style="padding: 8px 4px; text-align: center; width: 28%;">متوسط مصر (ج.م)</th>
+                        <th style="padding: 8px 4px; text-align: center; width: 28%;">متوسط عمان (ر.ع.)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -819,8 +856,9 @@ def generate_complete_infopulse_html(
                 </tbody>
             </table>
 
-            <div class="section-title">6️⃣ المؤشرات الاقتصادية الرسمية الشاملة</div>
-            __MACRO_HTML__
+            <!-- 6. التحليل الفني للعملات الرقمية -->
+            <div class="section-title">6️⃣ التحليل الفني للعملات الرقمية</div>
+            __CRYPTO_HTML__
         </div>
 
         <div class="footer">
@@ -837,9 +875,9 @@ def generate_complete_infopulse_html(
       .replace('__TA_SUMMARY__', ta_summary)
       .replace('__FOREX_ROWS__', forex_combined_rows)
       .replace('__COMMODITIES_ROWS__', commodities_rows)
-      .replace('__CRYPTO_HTML__', crypto_html)
-      .replace('__CAR_ROWS__', car_rows_html)
       .replace('__MACRO_HTML__', macro_html)
+      .replace('__CAR_ROWS__', car_rows_html)
+      .replace('__CRYPTO_HTML__', crypto_html)
   )
   return html
 
@@ -848,7 +886,7 @@ def generate_complete_infopulse_html(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse بالنسخة المصححة بالكامل...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse بالترتيب والتنسيق الجديد...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -918,7 +956,7 @@ def main_loop():
 
         time.sleep(0.2)
 
-      news_summary = '1️⃣ أهم الأخبار الاقتصادية:\n'
+      news_summary = '1️⃣ موجز الأخبار الاقتصادية:\n'
       for i in merged_news[:4]:
         news_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
 
@@ -931,9 +969,9 @@ def main_loop():
 ⏱ التوقيت: {current_time_str}
 ===================================
 {news_summary}
-2️⃣ أسعار العملات والذهب:
+2️⃣ أسعار العملات والوقود:
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
-• OMR مقابل EGP: 1 ر.ع. = {usd_egp/usd_omr:.2f} ج.م
+• بنزين 95: 24.00 ج.م/لتر | 0.239 ر.ع./لتر
 • الذهب عيار 24: {commodities_omr.get('الذهب عيار 24 (جرام)', 0):,.2f} ر.ع.
 • الذهب عيار 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.2f} ر.ع.
 
@@ -953,9 +991,9 @@ def main_loop():
         wa_msg = f"""📊 *التطورات الاقتصادية من إنفوبلس (مصر 🇪🇬 & عمان 🇴🇲)*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز الأسعار:*
+📰 *أبرز الأسعار والوقود:*
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
-• OMR/EGP: {usd_egp/usd_omr:.2f} ج.م لكل ريال
+• بنزين 95: 24.00 ج.م/لتر | 0.239 ر.ع./لتر
 • الذهب 24 (عمان): {commodities_omr.get('الذهب عيار 24 (جرام)', 0):,.2f} ر.ع.
 • الذهب 21 (مصر/عمان): {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.2f} ر.ع.
 -----------------------------------

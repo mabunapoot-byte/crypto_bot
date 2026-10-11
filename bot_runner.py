@@ -39,6 +39,7 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'mabunapoot@gmail.com')
 RECEIVER_EMAIL = os.environ.get('RECEIVER_EMAIL', 'mabunapoot@gmail.com')
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
 
+# مواقيت فترات الإرسال (بالساعات)
 CHECK_INTERVAL_MINUTES = 5
 WHATSAPP_INTERVAL_HOURS = 2
 EMAIL_INTERVAL_HOURS = 3
@@ -46,7 +47,7 @@ TELEGRAM_INTERVAL_HOURS = 6
 
 
 # ---------------------------------------------------------
-# 3. إرسال البريد الإلكتروني عبر Brevo HTTP API
+# 3. خدمات الإرسال (البريد، واتساب، تيليجرام)
 # ---------------------------------------------------------
 def send_email_report(subject, message_body):
   if not BREVO_API_KEY:
@@ -77,9 +78,6 @@ def send_email_report(subject, message_body):
     return False
 
 
-# ---------------------------------------------------------
-# 4. إرسال الواتساب وتيليجرام
-# ---------------------------------------------------------
 def send_whatsapp_message(message_body):
   phone_number = (
       MY_PHONE_NUMBER.split('@')[0]
@@ -111,6 +109,10 @@ def send_telegram_message(message):
   }
   try:
     res = requests.post(url, json=payload, timeout=10)
+    # إعادة المحاولة بدون parse_mode في حال وجود رموز خاصة في الأخبار تمنع الإرسال
+    if res.status_code != 200:
+      payload.pop('parse_mode', None)
+      res = requests.post(url, json=payload, timeout=10)
     return res.status_code == 200
   except Exception as e:
     print(f'❌ خطأ تيليجرام: {e}', flush=True)
@@ -118,26 +120,25 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 5. جلب الأخبار الاقتصادية الحية من مصادر متعددة (مع قطاع قطع غيار السيارات)
+# 4. جلب الأخبار والمؤشرات الاقتصادية الرسمية
 # ---------------------------------------------------------
 def fetch_live_arabic_news():
   news_data = {}
 
-  # مصادر متنوعة ومتناوبة تضمن الحداثة في جميع المجالات بما فيها قطاع قطع غيار السيارات
   sources = {
       '🌍 مصر والشرق الأوسط': [
           'https://www.mubasher.info/rss/news/egypt',
           'https://www.skynewsarabia.com/rss/v1/economy.xml',
           'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar',
       ],
-      '🇺🇸 أمريكا والفيدرالي': [
-          'https://sa.investing.com/rss/news_285.rss',
-          'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
-      ],
       '🏎️ صناعة وقطع غيار السيارات العالمية (Bosch, Valeo...)': [
           'https://news.google.com/rss/search?q=صناعة+قطع+غيار+السيارات+Bosch+Valeo&hl=ar&gl=EG&ceid=EG:ar',
           'https://news.google.com/rss/search?q=شركات+قطع+غيار+السيارات+عالميا&hl=ar&gl=EG&ceid=EG:ar',
           'https://news.google.com/rss/search?q=Bosch+Valeo+automotive+industry&hl=ar&gl=EG&ceid=EG:ar',
+      ],
+      '🇺🇸 أمريكا والفيدرالي': [
+          'https://sa.investing.com/rss/news_285.rss',
+          'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
       ],
       '🇪🇺 أوروبا وروسيا': [
           'https://news.google.com/rss/search?q=المركزي+الأوروبي+تضخم&hl=ar&gl=EG&ceid=EG:ar',
@@ -207,7 +208,7 @@ def get_egypt_macro_indicators():
 
 
 # ---------------------------------------------------------
-# 6. جلب أسعار العملات والمعادن والسيارات والتحليل الفني
+# 5. جلب أسعار العملات والمعادن والسيارات والتحليل الفني
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_prices(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -375,13 +376,10 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 7. الحلقة الرئيسية والجدولة
+# 6. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print(
-      '🤖 بدأ تشغيل البوت المحدث بنظام أخبار قطاع قطع غيار السيارات...',
-      flush=True,
-  )
+  print('🤖 بدأ تشغيل البوت المحدث والشامل بنجاح...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -554,4 +552,53 @@ def main_loop():
 1️⃣ النشرة الاقتصادية العاجلة وقطاع السيارات العالمية:
 --------------------------------------------------{news_summary_str}
 
-2️⃣ المؤشرات
+2️⃣ المؤشرات الاقتصادية الكلية (البنك المركزي + CAPMAS + صندوق النقد الدولي):
+--------------------------------------------------
+{macro_str}
+
+3️⃣ أسعار العملات الأجنبية المباشرة بالجنيه المصري:
+--------------------------------------------------
+• USD (دولار أمريكي): {usd_egp:.2f} ج.م
+• EUR (يورو): {forex_rates.get('EUR', 0):.2f} ج.م
+• GBP (جنيه إسترليني): {forex_rates.get('GBP', 0):.2f} ج.م
+• SAR (ريال سعودي): {forex_rates.get('SAR', 0):.2f} ج.م
+• AED (درهم إماراتي): {forex_rates.get('AED', 0):.2f} ج.م
+• KWD (دينار كويتي): {forex_rates.get('KWD', 0):.2f} ج.م
+
+4️⃣ بورصة الصاغة المصرية والمعادن (الأونصة العالمية: ${gold_oz:,.2f}):
+--------------------------------------------------
+{metals_str}
+
+5️⃣ مؤشرات وتحليل العملات الرقمية المباشر:
+--------------------------------------------------
+{crypto_msg_tg}
+
+6️⃣ مؤشر ودليل أسعار السيارات في مصر (محدث ديناميكياً):
+--------------------------------------------------{auto_str}
+
+==================================================
+⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة.
+"""
+        email_subject = (
+            f'📈 التقرير المالي والإقتصادي الشامل - {current_time_str}'
+        )
+
+        if send_email_report(email_subject, email_report):
+          print('✅ تم إرسال البريد الإلكتروني بنجاح.', flush=True)
+          last_email_time = current_time
+
+    except Exception as e:
+      print(f'❌ خطأ في الحلقة الرئيسية: {e}', flush=True)
+
+    time.sleep(CHECK_INTERVAL_MINUTES * 60)
+
+
+# ---------------------------------------------------------
+# 7. نقطة الانطلاق
+# ---------------------------------------------------------
+if __name__ == '__main__':
+  web_thread = Thread(target=run_web_server)
+  web_thread.daemon = True
+  web_thread.start()
+
+  main_loop()

@@ -46,7 +46,7 @@ TELEGRAM_INTERVAL_HOURS = 6
 
 
 # ---------------------------------------------------------
-# 3. خدمات الإرسال (إرسال إيميل HTML بتصميم RTL وتفاعلي)
+# 3. خدمات الإرسال
 # ---------------------------------------------------------
 def send_email_report(subject, html_body):
   if not BREVO_API_KEY:
@@ -411,7 +411,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد البريد الإلكتروني HTML مع اللوجو المدمج والتنسيق الـ RTL
+# 8. توليد البريد الإلكتروني مع لوجو InfoPulse المائي في خلفية الهيدر
 # ---------------------------------------------------------
 def generate_infopulse_html_email(
     current_time_str,
@@ -425,7 +425,7 @@ def generate_infopulse_html_email(
     egypt_macro,
 ):
 
-  # 1. قائمة الأخبار العامة المدمجة بدون تصنيف مع الرابط بخط أصغر
+  # 1. قائمة الأخبار العامة المدمجة
   news_html = ''
   for item in merged_news:
     news_html += f"""
@@ -503,7 +503,33 @@ def generate_infopulse_html_email(
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px 10px; text-align: right; direction: rtl; }}
             .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; direction: rtl; }}
-            .header {{ background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 25px 20px; text-align: center; border-bottom: 4px solid #10b981; }}
+            
+            /* الهيدر المطور مع اللوجو المائي بالخلفية */
+            .header {{ 
+                position: relative; 
+                background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); 
+                color: #ffffff; 
+                padding: 32px 20px 26px 20px; 
+                text-align: center; 
+                border-bottom: 4px solid #10b981; 
+                overflow: hidden; 
+            }}
+            .header-watermark {{
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 100%;
+                height: 100%;
+                opacity: 0.12;
+                pointer-events: none;
+                z-index: 1;
+            }}
+            .header-content {{
+                position: relative;
+                z-index: 2;
+            }}
+            
             .content {{ padding: 25px 20px; text-align: right; direction: rtl; }}
             .section-title {{ font-size: 16px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 6px; margin-top: 24px; margin-bottom: 14px; font-weight: 700; text-align: right; }}
             .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 13px; text-align: right; direction: rtl; }}
@@ -514,20 +540,33 @@ def generate_infopulse_html_email(
     <body dir="rtl">
         <div class="container" dir="rtl">
             <div class="header">
-                <!-- شعار InfoPulse مدمج رسومياً لضمان الظهور الفوري دائمًا -->
-                <div style="margin-bottom: 8px; text-align: center;">
-                    <svg width="220" height="75" viewBox="0 0 300 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 220px; height: auto;">
-                        <path d="M10 50 H40 L55 25 L70 75 L85 10 L100 65 L115 35 L130 50 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="55" cy="25" r="4.5" fill="#10b981"/>
-                        <circle cx="85" cy="10" r="4.5" fill="#10b981"/>
-                        <circle cx="100" cy="65" r="4.5" fill="#38bdf8"/>
-                        <path d="M130 50 L190 15 M130 50 L190 32 M130 50 L190 68 M150 38 V58 M170 26 V64" stroke="#ffffff" stroke-width="2" stroke-opacity="0.8"/>
-                        <text x="10" y="92" font-family="'Segoe UI', sans-serif" font-size="28" font-weight="800" fill="#ffffff">Info<tspan fill="#10b981">Pulse</tspan></text>
-                        <text x="160" y="92" font-family="'Segoe UI', sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
+                <!-- خلفية مائية لشعار InfoPulse بنسبة شفافية ناعمة (Watermark SVG) -->
+                <div class="header-watermark">
+                    <svg viewBox="0 0 500 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M-20 100 H120 L150 40 L180 160 L210 10 L240 140 L270 60 L300 100 H520" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <circle cx="150" cy="40" r="9" fill="#10b981"/>
+                        <circle cx="210" cy="10" r="9" fill="#10b981"/>
+                        <circle cx="240" cy="140" r="9" fill="#38bdf8"/>
+                        <path d="M300 100 L460 20 M300 100 L460 60 M300 100 L460 140 M360 70 V120 M420 40 V150" stroke="#ffffff" stroke-width="4" stroke-opacity="0.8"/>
                     </svg>
                 </div>
-                <h2 style="margin:4px 0 0 0; font-size:19px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
-                <p style="margin:5px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">⏱ التوقيت: {current_time_str}</p>
+
+                <!-- محتوى الهيدر الرئيسي فوق الخلفية المائية -->
+                <div class="header-content">
+                    <div style="margin-bottom: 8px; text-align: center;">
+                        <svg width="230" height="75" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 230px; height: auto;">
+                            <path d="M10 45 H40 L55 20 L70 70 L85 8 L100 60 L115 30 L130 45 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="55" cy="20" r="4" fill="#10b981"/>
+                            <circle cx="85" cy="8" r="4" fill="#10b981"/>
+                            <circle cx="100" cy="60" r="4" fill="#38bdf8"/>
+                            <path d="M130 45 L190 12 M130 45 L190 28 M130 45 L190 62 M150 34 V52 M170 22 V58" stroke="#ffffff" stroke-width="2" stroke-opacity="0.85"/>
+                            <text x="10" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="28" font-weight="800" fill="#ffffff">Info<tspan fill="#10b981">Pulse</tspan></text>
+                            <text x="160" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
+                        </svg>
+                    </div>
+                    <h2 style="margin:4px 0 0 0; font-size:20px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
+                    <p style="margin:6px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">⏱ التوقيت: {current_time_str}</p>
+                </div>
             </div>
             
             <div class="content" dir="rtl">
@@ -579,7 +618,7 @@ def generate_infopulse_html_email(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse بالتنسيق النهائي والتصميم التفاعلي...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse بستايل الخلفية المائية الهادئ...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -718,7 +757,7 @@ def main_loop():
         subject = f'التطورات الاقتصادية من إنفوبلس - {current_time_str}'
 
         if send_email_report(subject, email_html):
-          print('✅ تم إرسال بريد إنفوبلس المنسق بنجاح.', flush=True)
+          print('✅ تم إرسال بريد إنفوبلس المحدث بنجاح.', flush=True)
           last_email_time = current_time
 
     except Exception as e:

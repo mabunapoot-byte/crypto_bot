@@ -1,4 +1,3 @@
-import base64
 import os
 import re
 import time
@@ -26,7 +25,7 @@ def run_web_server():
 
 
 # ---------------------------------------------------------
-# 2. الثوابت ومتغيرات البيئة وهوية InfoPulse
+# 2. الثوابت ومتغيرات البيئة
 # ---------------------------------------------------------
 TELEGRAM_TOKEN = os.environ.get(
     'TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4'
@@ -40,12 +39,6 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'mabunapoot@gmail.com')
 RECEIVER_EMAIL = os.environ.get('RECEIVER_EMAIL', 'mabunapoot@gmail.com')
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
 
-# يمكن وضع رابط الصورة المباشر أو خزنها هنا (رابط الصورة أو Data Base64)
-INFOPULSE_LOGO_URL = os.environ.get(
-    'INFOPULSE_LOGO_URL',
-    'https://raw.githubusercontent.com/mabunapoot/assets/main/infopulse_logo.png',
-)
-
 CHECK_INTERVAL_MINUTES = 5
 WHATSAPP_INTERVAL_HOURS = 2
 EMAIL_INTERVAL_HOURS = 3
@@ -53,7 +46,7 @@ TELEGRAM_INTERVAL_HOURS = 6
 
 
 # ---------------------------------------------------------
-# 3. خدمات الإرسال (إرسال إيميل HTML بتصميم RTL تفاعلي)
+# 3. خدمات الإرسال (إرسال إيميل HTML بتصميم RTL وتفاعلي)
 # ---------------------------------------------------------
 def send_email_report(subject, html_body):
   if not BREVO_API_KEY:
@@ -125,10 +118,19 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 4. جلب الأخبار الاقتصادية وأخبار السيارات مع المصادر
+# 4. جلب كافة الأخبار مدمجة في قائمة واحدة بدون تصنيف
 # ---------------------------------------------------------
-def fetch_news_with_links(sources_dict):
-  news_data = {}
+def fetch_all_merged_news():
+  sources = [
+      'https://www.mubasher.info/rss/news/egypt',
+      'https://www.skynewsarabia.com/rss/v1/economy.xml',
+      'https://news.google.com/rss/search?q=Bosch+Valeo+ZF+Continental+Denso+قطع+غيار+سيارات&hl=ar&gl=EG&ceid=EG:ar',
+      'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar',
+      'https://news.google.com/rss/search?q=صناعة+السيارات+تويوتا+تسلا+فولكس+فاغن+BYD&hl=ar&gl=EG&ceid=EG:ar',
+      'https://sa.investing.com/rss/news_285.rss',
+      'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
+  ]
+
   headers = {
       'User-Agent': (
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -136,78 +138,43 @@ def fetch_news_with_links(sources_dict):
       )
   }
 
-  for category, url_list in sources_dict.items():
-    items_list = []
-    for url in url_list:
-      try:
-        res = requests.get(url, headers=headers, timeout=6)
-        if res.status_code == 200:
-          root = ET.fromstring(res.content)
-          raw_items = root.findall('.//item')[:3]
+  merged_items = []
 
-          for item in raw_items:
-            title_node = item.find('title')
-            link_node = item.find('link')
+  for url in sources:
+    try:
+      res = requests.get(url, headers=headers, timeout=6)
+      if res.status_code == 200:
+        root = ET.fromstring(res.content)
+        raw_items = root.findall('.//item')[:3]
 
-            if title_node is not None and title_node.text:
-              title_clean = title_node.text.split(' - ')[0].strip()
-              title_clean = re.sub('<[^<]+?>', '', title_clean)
-              link_url = link_node.text.strip() if link_node is not None and link_node.text else '#'
+        for item in raw_items:
+          title_node = item.find('title')
+          link_node = item.find('link')
 
-              if title_clean and len(title_clean) > 10:
-                if not any(i['title'] == title_clean for i in items_list):
-                  items_list.append({'title': title_clean, 'link': link_url})
+          if title_node is not None and title_node.text:
+            title_clean = title_node.text.split(' - ')[0].strip()
+            title_clean = re.sub('<[^<]+?>', '', title_clean)
+            link_url = link_node.text.strip() if link_node is not None and link_node.text else '#'
 
-          if len(items_list) >= 2:
-            break
-      except Exception as e:
-        print(f'⚠️ خطأ جلب {category} من {url}: {e}', flush=True)
-        continue
+            if title_clean and len(title_clean) > 10:
+              if not any(i['title'] == title_clean for i in merged_items):
+                merged_items.append({'title': title_clean, 'link': link_url})
 
-    news_data[category] = (
-        items_list[:3]
-        if items_list
-        else [{'title': 'متابعة حية للتحركات اليومية.', 'link': '#'}]
-    )
+        if len(merged_items) >= 8:
+          break
+    except Exception as e:
+      print(f'⚠️ خطأ جلب الأخبار من {url}: {e}', flush=True)
+      continue
 
-  return news_data
-
-
-def fetch_all_live_news():
-  # 1. أهم الأخبار الاقتصادية العامة
-  econ_sources = {
-      '🌍 مصر والشرق الأوسط': [
-          'https://www.mubasher.info/rss/news/egypt',
-          'https://www.skynewsarabia.com/rss/v1/economy.xml',
-          'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar',
-      ],
-      '🇺🇸 الاقتصاد العالمي والفيدرالي': [
-          'https://sa.investing.com/rss/news_285.rss',
-          'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
-      ],
-      '🇪🇺 الأسواق الأوروبية والإقليمية': [
-          'https://news.google.com/rss/search?q=المركزي+الأوروبي+تضخم&hl=ar&gl=EG&ceid=EG:ar',
-          'https://www.skynewsarabia.com/rss/v1/economy.xml',
-      ],
-  }
-
-  # 2. أخبار صناعة السيارات وشركات قطع الغيار العالمية
-  auto_sources = {
-      '🏎️ مصنعي السيارات وشركات قطع الغيار العالمية (Bosch, Valeo, ZF...)': [
-          'https://news.google.com/rss/search?q=Bosch+Valeo+ZF+Continental+Denso+قطع+غيار+سيارات&hl=ar&gl=EG&ceid=EG:ar',
-          'https://news.google.com/rss/search?q=صناعة+السيارات+تويوتا+تسلا+فولكس+فاغن+BYD&hl=ar&gl=EG&ceid=EG:ar',
-          'https://news.google.com/rss/search?q=شركات+قطع+غيار+السيارات+سلاسل+التوريد&hl=ar&gl=EG&ceid=EG:ar',
-      ]
-  }
-
-  economic_news = fetch_news_with_links(econ_sources)
-  auto_industry_news = fetch_news_with_links(auto_sources)
-
-  return economic_news, auto_industry_news
+  return (
+      merged_items[:8]
+      if merged_items
+      else [{'title': 'متابعة حية لأحدث التطورات الاقتصادية.', 'link': '#'}]
+  )
 
 
 # ---------------------------------------------------------
-# 5. جلب أسعار العملات والمعادن والسوق المحلي المصري
+# 5. البيانات المالية والعملات والمعادن والسوق المحلي
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -246,7 +213,7 @@ def get_live_forex_and_commodities():
     rates = res.json().get('rates', {})
     usd_egp = rates.get('EGP', 47.4)
 
-    # 3. أسعار العملات (شاملة اليوان الصيني)
+    # 2. أسعار العملات (شاملة اليوان الصيني)
     forex = {
         'USD (دولار أمريكي)': usd_egp,
         'EUR (يورو أوروبي)': (
@@ -286,7 +253,7 @@ def get_live_forex_and_commodities():
     except Exception:
       silver_oz_usd = 31.5
 
-    # 4. أسعار الذهب في مصر (السوق المحلي) لجميع العيارات والفضة
+    # 3. أسعار الذهب في مصر (السوق المحلي) لجميع العيارات والفضة
     g21_local = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
     g24_local = g21_local * (24 / 21)
     silver_999_local = (silver_oz_usd / 31.1035) * usd_egp
@@ -444,12 +411,11 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد البريد الإلكتروني HTML التفاعلي لماركة InfoPulse (RTL)
+# 8. توليد البريد الإلكتروني HTML مع اللوجو المدمج والتنسيق الـ RTL
 # ---------------------------------------------------------
 def generate_infopulse_html_email(
     current_time_str,
-    economic_news,
-    auto_industry_news,
+    merged_news,
     forex_rates,
     forex_ta,
     commodities,
@@ -459,49 +425,19 @@ def generate_infopulse_html_email(
     egypt_macro,
 ):
 
-  # 1. أهم الأخبار الاقتصادية العامة
-  econ_news_html = ''
-  for region, items in economic_news.items():
-    econ_news_html += f"""
-        <div style="background-color: #ffffff; border-right: 4px solid #10b981; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
-            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 15px; display: flex; align-items: center; gap: 6px;">
-                <span style="color: #10b981;">⚡</span> {region}
-            </h4>
-            <ul style="margin: 0; padding-right: 18px; color: #334155; font-size: 13px; line-height: 1.6;">
+  # 1. قائمة الأخبار العامة المدمجة بدون تصنيف مع الرابط بخط أصغر
+  news_html = ''
+  for item in merged_news:
+    news_html += f"""
+        <div style="background-color: #ffffff; border-right: 4px solid #10b981; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+            <div style="font-weight: 600; color: #0b192c; font-size: 14px; line-height: 1.5;">{item['title']}</div>
+            <div style="margin-top: 5px;">
+                <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #0284c7; background-color: #f0f9ff; padding: 2px 10px; border-radius: 12px; text-decoration: none; font-weight: 500;">🔗 رابط المصدر</a>
+            </div>
+        </div>
     """
-    for item in items:
-      econ_news_html += f"""
-                <li style="margin-bottom: 10px;">
-                    <div style="font-weight: 600; color: #1e293b;">{item['title']}</div>
-                    <div style="margin-top: 3px;">
-                        <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #0284c7; background-color: #e0f2fe; padding: 2px 10px; border-radius: 12px; text-decoration: none; font-weight: 500;">🔗 رابط المصدر</a>
-                    </div>
-                </li>
-      """
-    econ_news_html += '</ul></div>'
 
-  # 2. أخبار صناعة السيارات وشركات قطع الغيار العالمية
-  auto_news_html = ''
-  for region, items in auto_industry_news.items():
-    auto_news_html += f"""
-        <div style="background-color: #f0fdf4; border-right: 4px solid #059669; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
-            <h4 style="margin: 0 0 10px 0; color: #065f46; font-size: 15px; display: flex; align-items: center; gap: 6px;">
-                <span>⚙️</span> {region}
-            </h4>
-            <ul style="margin: 0; padding-right: 18px; color: #1e293b; font-size: 13px; line-height: 1.6;">
-    """
-    for item in items:
-      auto_news_html += f"""
-                <li style="margin-bottom: 10px;">
-                    <div style="font-weight: 600; color: #0f172a;">{item['title']}</div>
-                    <div style="margin-top: 3px;">
-                        <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #059669; background-color: #d1fae5; padding: 2px 10px; border-radius: 12px; text-decoration: none; font-weight: 500;">🔗 رابط المصدر</a>
-                    </div>
-                </li>
-      """
-    auto_news_html += '</ul></div>'
-
-  # 3. أسعار العملات
+  # 2. أسعار العملات
   forex_rows = ''
   for curr, rate in forex_rates.items():
     forex_rows += f"""
@@ -511,7 +447,7 @@ def generate_infopulse_html_email(
         </tr>
     """
 
-  # 4. أسعار الذهب والمعادن في مصر (السوق المحلي)
+  # 3. أسعار الذهب في مصر والمعادن
   commodities_rows = ''
   for item, price in commodities.items():
     commodities_rows += f"""
@@ -521,24 +457,24 @@ def generate_infopulse_html_email(
         </tr>
     """
 
-  # 5. التحليل الفني للعملات الرقمية
+  # 4. التحليل الفني للعملات الرقمية
   crypto_html = ''
   for c in crypto_data_list:
     badge_bg = '#dcfce7' if c['status_short'] == 'Buy' else '#fee2e2'
     badge_color = '#15803d' if c['status_short'] == 'Buy' else '#b91c1c'
     crypto_html += f"""
-        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
                 <span style="font-weight: 700; color: #0b192c; font-size: 14px;">🪙 {c['name']}</span>
                 <span style="background-color: {badge_bg}; color: {badge_color}; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">{c['status_short']}</span>
             </div>
-            <div style="margin-top: 8px; font-size: 12px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
+            <div style="margin-top: 6px; font-size: 12px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
                 السعر: <b style="color:#0b192c;">${c['price_usd']:,.2f}</b> ({c['price_egp']:,.0f} ج.م) &bull; RSI: <b>{c['rsi']:.1f}</b> &bull; SMA10: <b>${c['sma10']:,.0f}</b>
             </div>
         </div>
     """
 
-  # 6. دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)
+  # 5. دليل أسعار السيارات في مصر
   auto_market_html = ''
   for brand_cat, models in auto_market_data.items():
     auto_market_html += f'<h4 style="color: #0b192c; margin: 12px 0 6px 0; font-size: 14px;">{brand_cat}</h4><ul style="margin: 0; padding-right: 18px; font-size: 13px; color: #334155; line-height: 1.7;">'
@@ -548,7 +484,7 @@ def generate_infopulse_html_email(
       )
     auto_market_html += '</ul>'
 
-  # 7. المؤشرات الاقتصادية الرسمية (مصر)
+  # 6. المؤشرات الاقتصادية الرسمية (مصر)
   macro_rows = ''
   for k, v in egypt_macro.items():
     macro_rows += f"""
@@ -567,9 +503,7 @@ def generate_infopulse_html_email(
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px 10px; text-align: right; direction: rtl; }}
             .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; direction: rtl; }}
-            .header {{ background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 28px 20px; text-align: center; border-bottom: 4px solid #10b981; }}
-            .logo-container {{ margin-bottom: 12px; text-align: center; }}
-            .logo-img {{ max-width: 220px; height: auto; filter: drop-shadow(0px 2px 8px rgba(0,0,0,0.3)); }}
+            .header {{ background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 25px 20px; text-align: center; border-bottom: 4px solid #10b981; }}
             .content {{ padding: 25px 20px; text-align: right; direction: rtl; }}
             .section-title {{ font-size: 16px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 6px; margin-top: 24px; margin-bottom: 14px; font-weight: 700; text-align: right; }}
             .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 13px; text-align: right; direction: rtl; }}
@@ -580,50 +514,51 @@ def generate_infopulse_html_email(
     <body dir="rtl">
         <div class="container" dir="rtl">
             <div class="header">
-                <div class="logo-container">
-                    <img src="{INFOPULSE_LOGO_URL}" alt="InfoPulse - إنفوبلس" class="logo-img" onerror="this.style.display='none'; document.getElementById('text-logo').style.display='block';">
-                    <div id="text-logo" style="display:none; font-size:26px; font-weight:bold; color:#ffffff; letter-spacing:1px;">
-                        <span style="color:#ffffff;">Info</span><span style="color:#10b981;">Pulse</span>
-                        <div style="font-size:18px; color:#94a3b8; margin-top:2px;">إنفوبلس</div>
-                    </div>
+                <!-- شعار InfoPulse مدمج رسومياً لضمان الظهور الفوري دائمًا -->
+                <div style="margin-bottom: 8px; text-align: center;">
+                    <svg width="220" height="75" viewBox="0 0 300 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 220px; height: auto;">
+                        <path d="M10 50 H40 L55 25 L70 75 L85 10 L100 65 L115 35 L130 50 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="55" cy="25" r="4.5" fill="#10b981"/>
+                        <circle cx="85" cy="10" r="4.5" fill="#10b981"/>
+                        <circle cx="100" cy="65" r="4.5" fill="#38bdf8"/>
+                        <path d="M130 50 L190 15 M130 50 L190 32 M130 50 L190 68 M150 38 V58 M170 26 V64" stroke="#ffffff" stroke-width="2" stroke-opacity="0.8"/>
+                        <text x="10" y="92" font-family="'Segoe UI', sans-serif" font-size="28" font-weight="800" fill="#ffffff">Info<tspan fill="#10b981">Pulse</tspan></text>
+                        <text x="160" y="92" font-family="'Segoe UI', sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
+                    </svg>
                 </div>
-                <h2 style="margin:10px 0 0 0; font-size:20px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
-                <p style="margin:6px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">⏱ التوقيت: {current_time_str}</p>
+                <h2 style="margin:4px 0 0 0; font-size:19px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
+                <p style="margin:5px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">⏱ التوقيت: {current_time_str}</p>
             </div>
             
             <div class="content" dir="rtl">
                 <!-- 1. أهم الأخبار الاقتصادية العامة -->
                 <div class="section-title">1️⃣ أهم الأخبار الاقتصادية العامة</div>
-                {econ_news_html}
+                {news_html}
 
-                <!-- 2. أخبار صناعة السيارات وشركات قطع الغيار العالمية -->
-                <div class="section-title">2️⃣ أخبار صناعة السيارات وشركات قطع الغيار العالمية</div>
-                {auto_news_html}
-
-                <!-- 3. أسعار العملات -->
-                <div class="section-title">3️⃣ أسعار العملات</div>
+                <!-- 2. أسعار العملات -->
+                <div class="section-title">2️⃣ أسعار العملات</div>
                 <div class="ta-box">{forex_ta}</div>
                 <table class="table-styled" dir="rtl">
                     {forex_rows}
                 </table>
 
-                <!-- 4. أسعار الذهب في مصر (السوق المحلي والمعادن) -->
-                <div class="section-title">4️⃣ أسعار الذهب في مصر (السوق المحلي والمعادن)</div>
+                <!-- 3. أسعار الذهب في مصر (السوق المحلي والمعادن) -->
+                <div class="section-title">3️⃣ أسعار الذهب في مصر (السوق المحلي والمعادن)</div>
                 <div class="ta-box">{commodities_ta}</div>
                 <table class="table-styled" dir="rtl">
                     {commodities_rows}
                 </table>
 
-                <!-- 5. التحليل الفني للعملات الرقمية -->
-                <div class="section-title">5️⃣ التحليل الفني للعملات الرقمية</div>
+                <!-- 4. التحليل الفني للعملات الرقمية -->
+                <div class="section-title">4️⃣ التحليل الفني للعملات الرقمية</div>
                 {crypto_html}
 
-                <!-- 6. دليل أسعار السيارات في مصر -->
-                <div class="section-title">6️⃣ دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)</div>
+                <!-- 5. دليل أسعار السيارات في مصر -->
+                <div class="section-title">5️⃣ دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)</div>
                 {auto_market_html}
 
-                <!-- 7. المؤشرات الاقتصادية الرسمية (مصر) -->
-                <div class="section-title">7️⃣ المؤشرات الاقتصادية الرسمية (مصر)</div>
+                <!-- 6. المؤشرات الاقتصادية الرسمية (مصر) -->
+                <div class="section-title">6️⃣ المؤشرات الاقتصادية الرسمية (مصر)</div>
                 <table class="table-styled" dir="rtl">
                     {macro_rows}
                 </table>
@@ -644,10 +579,7 @@ def generate_infopulse_html_email(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print(
-      '🤖 بدأ تشغيل بوت InfoPulse (إنفوبلس) مع التنسيق التفاعلي RTL...',
-      flush=True,
-  )
+  print('🤖 بدأ تشغيل بوت InfoPulse بالتنسيق النهائي والتصميم التفاعلي...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -672,7 +604,7 @@ def main_loop():
           forex_ta,
           commodities_ta,
       ) = get_live_forex_and_commodities()
-      economic_news, auto_industry_news = fetch_all_live_news()
+      merged_news = fetch_all_merged_news()
       auto_market_data = get_european_asian_auto_market(usd_egp)
       egypt_macro = get_egypt_macro_indicators()
       current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
@@ -718,14 +650,8 @@ def main_loop():
         time.sleep(0.2)
 
       news_tg_summary = '1️⃣ أهم الأخبار الاقتصادية العامة:\n'
-      for r, items in economic_news.items():
-        for i in items[:2]:
-          news_tg_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
-
-      auto_tg_summary = '\n2️⃣ أخبار صناعة السيارات وقطع الغيار:\n'
-      for r, items in auto_industry_news.items():
-        for i in items[:2]:
-          auto_tg_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
+      for i in merged_news[:4]:
+        news_tg_summary += f'• {i["title"]}\n  🔗 {i["link"]}\n'
 
       # --- 1. إرسال تيليجرام (كل 6 ساعات) ---
       if (
@@ -735,16 +661,16 @@ def main_loop():
         tg_report = f"""📊 التطورات الاقتصادية من إنفوبلس
 ⏱ التوقيت: {current_time_str}
 ===================================
-{news_tg_summary}{auto_tg_summary}
-3️⃣ أسعار العملات:
+{news_tg_summary}
+2️⃣ أسعار العملات:
 • USD: {usd_egp:.2f} ج.م | EUR: {forex_rates.get('EUR (يورو أوروبي)', 0):.2f} ج.م
 • CNY (اليوان الصيني): {forex_rates.get('CNY (يوان صيني)', 0):.2f} ج.م
 
-4️⃣ أسعار الذهب في مصر:
+3️⃣ أسعار الذهب في مصر:
 • عيار 21: {commodities.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م
 • الجنيه الذهب: {commodities.get('الجنيه الذهب (8 جرام عيار 21)', 0):,.0f} ج.م
 
-5️⃣ العملات الرقمية:
+4️⃣ العملات الرقمية:
 {wa_crypto_details}
 ⚙️ InfoPulse Automated Engine"""
 
@@ -760,7 +686,7 @@ def main_loop():
         wa_msg = f"""📊 *التطورات الاقتصادية من إنفوبلس*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز عناوين الأخبار والسيارات:*
+📰 *أبرز عناوين الأخبار:*
 • USD: {usd_egp:.2f} ج.م | CNY: {forex_rates.get('CNY (يوان صيني)', 0):.2f} ج.م
 • الذهب عيار 21: {commodities.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م
 -----------------------------------
@@ -772,15 +698,14 @@ def main_loop():
           print('✅ تم إرسال تقرير الواتساب بنجاح.', flush=True)
           last_whatsapp_time = current_time
 
-      # --- 3. إرسال البريد الإلكتروني المنسق الشامل (كل 3 ساعات) ---
+      # --- 3. إرسال البريد الإلكتروني (كل 3 ساعات) ---
       if (
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
       ):
         email_html = generate_infopulse_html_email(
             current_time_str,
-            economic_news,
-            auto_industry_news,
+            merged_news,
             forex_rates,
             forex_ta,
             commodities,
@@ -793,7 +718,7 @@ def main_loop():
         subject = f'التطورات الاقتصادية من إنفوبلس - {current_time_str}'
 
         if send_email_report(subject, email_html):
-          print('✅ تم إرسال بريد إنفوبلس بنجاح.', flush=True)
+          print('✅ تم إرسال بريد إنفوبلس المنسق بنجاح.', flush=True)
           last_email_time = current_time
 
     except Exception as e:

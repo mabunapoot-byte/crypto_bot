@@ -344,95 +344,95 @@ def get_live_forex_and_commodities_full():
 
 
 # ---------------------------------------------------------
-# 6. لوجوهات شركات السيارات ورسومات SVG المدمجة
+# 6. لوجوهات الشركات الصانعة وتوليد جدول متوسط أسعار السيارات الموحد
 # ---------------------------------------------------------
 CAR_LOGOS_SVG = {
     'Mercedes': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><circle cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
         ' cy="12" r="10" stroke="#0b192c" stroke-width="1.8"/><path d="M12'
         ' 2v10m0 0l-7.5 4.5M12 12l7.5 4.5" stroke="#0b192c" stroke-width="1.8"'
         ' stroke-linecap="round"/></svg>'
     ),
     'BMW': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><circle cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
         ' cy="12" r="10" stroke="#0b192c" stroke-width="1.8"'
         ' fill="#0b192c"/><path d="M12 4a8 8 0 0 1 8 8h-8V4z"'
         ' fill="#0284c7"/><path d="M12 20a8 8 0 0 1-8-8h8v8z"'
         ' fill="#0284c7"/></svg>'
     ),
     'VW': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><circle cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
         ' cy="12" r="10" stroke="#0b192c" stroke-width="1.8"/><path d="M6 7l3 9'
         ' 3-9M12 7l3 9 3-9" stroke="#0b192c" stroke-width="1.5"'
         ' stroke-linecap="round" stroke-linejoin="round"/></svg>'
     ),
     'Peugeot': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><path d="M12 2L4'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><path d="M12 2L4'
         ' 5v6c0 5.5 3.5 10.5 8 11 4.5-0.5 8-5.5 8-11V5l-8-3z" stroke="#0b192c"'
         ' stroke-width="1.8" fill="#10b981" fill-opacity="0.1"/><path d="M10'
         ' 8c1-1 3-1 4 0s0 3-1 4l2 3h-2l-1.5-2H10v2H8.5V8H10z" fill="#0b192c"/></svg>'
     ),
     'Skoda': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><circle cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
         ' cy="12" r="10" stroke="#059669" stroke-width="1.8"/><path d="M8'
         ' 12l8-4-4 8" stroke="#059669" stroke-width="1.5"'
         ' stroke-linecap="round"/></svg>'
     ),
     'Renault': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><path d="M12 2L4'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><path d="M12 2L4'
         ' 12l8 10 8-10L12 2z" stroke="#d97706" stroke-width="1.8"'
         ' fill="none"/></svg>'
     ),
     'Toyota': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><ellipse cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
         ' cy="12" rx="10" ry="7" stroke="#0b192c" stroke-width="1.5"/><ellipse'
         ' cx="12" cy="12" rx="4" ry="7" stroke="#0b192c"'
         ' stroke-width="1.5"/><ellipse cx="12" cy="9" rx="7" ry="3"'
         ' stroke="#0b192c" stroke-width="1.5"/></svg>'
     ),
     'Nissan': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><circle cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
         ' cy="12" r="9" stroke="#0b192c" stroke-width="1.5"/><rect x="3" y="10"'
         ' width="18" height="4" fill="#0b192c"/></svg>'
     ),
     'Hyundai': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><ellipse cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
         ' cy="12" rx="10" ry="6" stroke="#0284c7" stroke-width="1.5"/><path'
         ' d="M8 8v8M16 8v8M8 12c4-2 4 2 8 0" stroke="#0284c7" stroke-width="1.5"'
         ' stroke-linecap="round"/></svg>'
     ),
     'Kia': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><ellipse cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
         ' cy="12" rx="10" ry="5" stroke="#b91c1c" stroke-width="1.5"/><text'
         ' x="6" y="15" font-family="sans-serif" font-size="8" font-weight="bold"'
         ' fill="#b91c1c">KIA</text></svg>'
     ),
     'Chery': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><circle cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
         ' cy="12" r="9" stroke="#0b192c" stroke-width="1.5"/><path d="M7 12a5 5'
         ' 0 0 1 10 0" stroke="#0b192c" stroke-width="1.5"/></svg>'
     ),
     'MG': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><path d="M7 2h10l5'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><path d="M7 2h10l5'
         ' 5v10l-5 5H7l-5-5V7l5-5z" stroke="#b91c1c" stroke-width="1.5"'
         ' fill="none"/><text x="5" y="15" font-family="sans-serif" font-size="8"'
         ' font-weight="bold" fill="#b91c1c">MG</text></svg>'
     ),
     'BYD': (
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 6px;"><ellipse cx="12"'
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
         ' cy="12" rx="10" ry="6" stroke="#0284c7" stroke-width="1.5"/><text'
         ' x="4.5" y="15" font-family="sans-serif" font-size="7"'
         ' font-weight="bold" fill="#0284c7">BYD</text></svg>'
@@ -440,142 +440,107 @@ CAR_LOGOS_SVG = {
 }
 
 
-def get_combined_auto_market_with_logos(usd_egp, usd_omr):
+def get_unified_car_rows(usd_egp, usd_omr):
   factor_egp = usd_egp / 47.4
   factor_omr = usd_omr / 0.3845
 
-  cars_egp = [
+  # قائمة السيارات الشاملة باسم الموديل مرة واحدة ومتوسط السعر التقريبي لكل دولة
+  car_list = [
       {
           'logo': CAR_LOGOS_SVG['Mercedes'],
           'name': 'مرسيدس C200 (ألماني)',
-          'price': f'{int(3400000*factor_egp):,} - {int(3800000*factor_egp):,} ج.م',
+          'avg_egp': int(3600000 * factor_egp),
+          'avg_omr': int(25750 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['BMW'],
           'name': 'بي إم دبليو 320i (ألماني)',
-          'price': f'{int(3200000*factor_egp):,} - {int(3600000*factor_egp):,} ج.م',
+          'avg_egp': int(3400000 * factor_egp),
+          'avg_omr': int(24250 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['VW'],
           'name': 'فولكس فاجن ID.4 (كهرباء)',
-          'price': f'{int(1650000*factor_egp):,} - {int(1850000*factor_egp):,} ج.م',
+          'avg_egp': int(1750000 * factor_egp),
+          'avg_omr': int(14650 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Peugeot'],
           'name': 'بيجو 408 (فرنسي)',
-          'price': f'{int(1950000*factor_egp):,} - {int(2150000*factor_egp):,} ج.م',
+          'avg_egp': int(2050000 * factor_egp),
+          'avg_omr': int(13650 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Skoda'],
           'name': 'سكودا أوكتافيا (تشيكي)',
-          'price': f'{int(1800000*factor_egp):,} - {int(1980000*factor_egp):,} ج.م',
+          'avg_egp': int(1890000 * factor_egp),
+          'avg_omr': int(11350 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Renault'],
           'name': 'رينو ميجان (فرنسي)',
-          'price': f'{int(1250000*factor_egp):,} - {int(1420000*factor_egp):,} ج.م',
+          'avg_egp': int(1335000 * factor_egp),
+          'avg_omr': int(8500 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Toyota'],
           'name': 'تويوتا كورولا (ياباني)',
-          'price': f'{int(1300000*factor_egp):,} - {int(1450000*factor_egp):,} ج.م',
+          'avg_egp': int(1375000 * factor_egp),
+          'avg_omr': int(7900 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Nissan'],
           'name': 'نيسان صني (ياباني)',
-          'price': f'{int(695000*factor_egp):,} - {int(750000*factor_egp):,} ج.م',
+          'avg_egp': int(722500 * factor_egp),
+          'avg_omr': int(5800 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Hyundai'],
-          'name': 'هيونداي إلترا AD (كوري)',
-          'price': f'{int(890000*factor_egp):,} - {int(980000*factor_egp):,} ج.م',
+          'name': 'هيونداي إلترا / أكسنت',
+          'avg_egp': int(935000 * factor_egp),
+          'avg_omr': int(6250 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Kia'],
           'name': 'كيا سبورتاج (كوري)',
-          'price': f'{int(1780000*factor_egp):,} - {int(1950000*factor_egp):,} ج.م',
+          'avg_egp': int(1865000 * factor_egp),
+          'avg_omr': int(10800 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['Chery'],
           'name': 'شيري أريزو 5 (صيني)',
-          'price': f'{int(650000*factor_egp):,} - {int(710000*factor_egp):,} ج.م',
+          'avg_egp': int(680000 * factor_egp),
+          'avg_omr': int(5200 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['MG'],
           'name': 'إم جي ZS (صيني)',
-          'price': f'{int(975000*factor_egp):,} - {int(1050000*factor_egp):,} ج.م',
+          'avg_egp': int(1012500 * factor_egp),
+          'avg_omr': int(6800 * factor_omr),
       },
       {
           'logo': CAR_LOGOS_SVG['BYD'],
           'name': 'BYD Song Plus (كهرباء)',
-          'price': f'{int(1550000*factor_egp):,} - {int(1720000*factor_egp):,} ج.م',
+          'avg_egp': int(1635000 * factor_egp),
+          'avg_omr': int(12350 * factor_omr),
       },
   ]
 
-  cars_omr = [
-      {
-          'logo': CAR_LOGOS_SVG['Mercedes'],
-          'name': 'مرسيدس C200 (ألماني)',
-          'price': f'{int(24000*factor_omr):,} - {int(27500*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['BMW'],
-          'name': 'بي إم دبليو 320i (ألماني)',
-          'price': f'{int(22500*factor_omr):,} - {int(26000*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['VW'],
-          'name': 'فولكس فاجن ID.4 (كهرباء)',
-          'price': f'{int(13500*factor_omr):,} - {int(15800*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Peugeot'],
-          'name': 'بيجو 408 (فرنسي)',
-          'price': f'{int(12800*factor_omr):,} - {int(14500*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Skoda'],
-          'name': 'سكودا أوكتافيا (تشيكي)',
-          'price': f'{int(10500*factor_omr):,} - {int(12200*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Toyota'],
-          'name': 'تويوتا لاند كروزر (ياباني)',
-          'price': f'{int(28500*factor_omr):,} - {int(36000*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Nissan'],
-          'name': 'نيسان صني (ياباني)',
-          'price': f'{int(5400*factor_omr):,} - {int(6200*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Hyundai'],
-          'name': 'هيونداي أكسنت (كوري)',
-          'price': f'{int(5800*factor_omr):,} - {int(6700*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Kia'],
-          'name': 'كيا سبورتاج (كوري)',
-          'price': f'{int(9800*factor_omr):,} - {int(11800*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['Chery'],
-          'name': 'شيري أريزو 5 (صيني)',
-          'price': f'{int(4800*factor_omr):,} - {int(5600*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['MG'],
-          'name': 'إم جي ZS (صيني)',
-          'price': f'{int(6200*factor_omr):,} - {int(7400*factor_omr):,} ر.ع.',
-      },
-      {
-          'logo': CAR_LOGOS_SVG['BYD'],
-          'name': 'BYD Song Plus (كهرباء)',
-          'price': f'{int(11500*factor_omr):,} - {int(13200*factor_omr):,} ر.ع.',
-      },
-  ]
-
-  return cars_egp, cars_omr
+  rows_html = ''
+  for item in car_list:
+    rows_html += f"""
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 8px 6px; text-align: right;">
+                <div style="display: flex; align-items: center;">
+                    {item['logo']}
+                    <span style="font-weight: 600; color: #0b192c; font-size: 12px;">{item['name']}</span>
+                </div>
+            </td>
+            <td style="padding: 8px 4px; font-weight: 700; color: #0b192c; text-align: center; font-size: 11.5px;">{item['avg_egp']:,} ج.م</td>
+            <td style="padding: 8px 4px; font-weight: 700; color: #0284c7; text-align: center; font-size: 11.5px;">{item['avg_omr']:,} ر.ع.</td>
+        </tr>
+    """
+  return rows_html
 
 
 # ---------------------------------------------------------
@@ -651,7 +616,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد التقرير المدمج بطريقة الاستبدال الآمن للـ HTML
+# 8. توليد التقرير المدمج بالتصميم المتوافق 100% مع الموبايل
 # ---------------------------------------------------------
 def generate_complete_infopulse_html(
     current_time_str,
@@ -661,8 +626,7 @@ def generate_complete_infopulse_html(
     commodities_egp,
     commodities_omr,
     crypto_data_list,
-    cars_egp,
-    cars_omr,
+    car_rows_html,
     macro_egp,
     macro_omr,
     ta_summary,
@@ -693,7 +657,7 @@ def generate_complete_infopulse_html(
         </tr>
     """
 
-  # 3. المعادن والسلع بالكامل (التصنيف الشامل)
+  # 3. المعادن والسلع بالكامل
   commodities_rows = ''
   for k in commodities_egp.keys():
     cg_egp = commodities_egp.get(k, 0)
@@ -727,47 +691,12 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 5. أسعار السيارات مع اللوجو
-  cars_html = """
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; direction: rtl;">
-        <div style="flex: 1; min-width: 270px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 13.5px; border-bottom: 2px solid #10b981; padding-bottom: 5px;">🇪🇬 أسعار السيارات في مصر</h4>
-            <ul style="margin: 0; padding: 0; list-style: none; font-size: 12.5px; color: #334155;">
-  """
-  for item in cars_egp:
-    cars_html += f"""
-        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
-            <div style="display: flex; align-items: center;">
-                {item['logo']}
-                <span style="font-weight: 600; color: #0b192c; font-size: 12px;">{item['name']}</span>
-            </div>
-            <span style="font-weight: 700; color: #0284c7; font-size: 11.5px;">{item['price']}</span>
-        </li>
-    """
-  cars_html += """
-            </ul>
-        </div>
-        <div style="flex: 1; min-width: 270px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 13.5px; border-bottom: 2px solid #0284c7; padding-bottom: 5px;">🇴🇲 أسعار السيارات في عمان</h4>
-            <ul style="margin: 0; padding: 0; list-style: none; font-size: 12.5px; color: #334155;">
-  """
-  for item in cars_omr:
-    cars_html += f"""
-        <li style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
-            <div style="display: flex; align-items: center;">
-                {item['logo']}
-                <span style="font-weight: 600; color: #0b192c; font-size: 12px;">{item['name']}</span>
-            </div>
-            <span style="font-weight: 700; color: #0284c7; font-size: 11.5px;">{item['price']}</span>
-        </li>
-    """
-  cars_html += '</ul></div></div>'
-
-  # 6. المؤشرات الاقتصادية
+  # 5. المؤشرات الاقتصادية ككروت متتابعة رأسيًا (تضمن العرض التام على الموبايل)
   macro_html = """
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; direction: rtl;">
-        <div style="flex: 1; min-width: 270px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 13.5px; font-weight:700; border-bottom:2px solid #10b981; padding-bottom:4px;">🇪🇬 مؤشرات اقتصاد مصر (CBE / CAPMAS)</h4>
+    <div style="width: 100%; box-sizing: border-box;">
+        <!-- كارت اقتصاد مصر -->
+        <div style="width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-sizing: border-box;">
+            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 13.5px; font-weight:700; border-bottom:2px solid #10b981; padding-bottom:5px;">🇪🇬 مؤشرات اقتصاد مصر (CBE / CAPMAS)</h4>
             <table style="width:100%; font-size:12px; border-collapse:collapse;">
   """
   for k, v in macro_egp.items():
@@ -775,31 +704,32 @@ def generate_complete_infopulse_html(
   macro_html += """
             </table>
         </div>
-        <div style="flex: 1; min-width: 270px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 13.5px; font-weight:700; border-bottom:2px solid #0284c7; padding-bottom:4px;">🇴🇲 مؤشرات اقتصاد عمان (CBO / NCSI)</h4>
+        <!-- كارت اقتصاد عمان -->
+        <div style="width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; box-sizing: border-box;">
+            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 13.5px; font-weight:700; border-bottom:2px solid #0284c7; padding-bottom:5px;">🇴🇲 مؤشرات اقتصاد عمان (CBO / NCSI)</h4>
             <table style="width:100%; font-size:12px; border-collapse:collapse;">
   """
   for k, v in macro_omr.items():
     macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:#475569;">{k}</td><td style="padding:6px 0; font-weight:700; color:#0284c7; text-align:left;">{v}</td></tr>'
   macro_html += '</table></div></div>'
 
-  # استخدام الهيكل الآمن لمنع أي تعارض في الأقواس لغوياً
+  # قالب HTML الآمن
   html_template = """<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 18px 8px; text-align: right; direction: rtl; }
-        .container { max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; direction: rtl; }
-        .header { position: relative; background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 30px 20px 24px 20px; text-align: center; border-bottom: 4px solid #10b981; overflow: hidden; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 14px 6px; text-align: right; direction: rtl; }
+        .container { max-width: 650px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; direction: rtl; }
+        .header { position: relative; background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 26px 16px 20px 16px; text-align: center; border-bottom: 4px solid #10b981; overflow: hidden; }
         .header-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; opacity: 0.12; pointer-events: none; z-index: 1; }
         .header-content { position: relative; z-index: 2; }
-        .content { padding: 22px 18px; text-align: right; direction: rtl; }
-        .section-title { font-size: 15.5px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 5px; margin-top: 22px; margin-bottom: 12px; font-weight: 700; text-align: right; }
-        .table-styled { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12.5px; text-align: right; direction: rtl; }
+        .content { padding: 18px 14px; text-align: right; direction: rtl; }
+        .section-title { font-size: 15px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 4px; margin-top: 20px; margin-bottom: 11px; font-weight: 700; text-align: right; }
+        .table-styled { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px; text-align: right; direction: rtl; }
         .ta-box { background-color: #ecfdf5; border-right: 4px solid #10b981; padding: 9px 12px; font-size: 12px; color: #047857; margin-bottom: 12px; border-radius: 6px; font-weight: 500; line-height: 1.5; }
-        .footer { background-color: #f8fafc; padding: 15px; text-align: center; font-size: 11.5px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }
+        .footer { background-color: #f8fafc; padding: 14px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }
     </style>
 </head>
 <body dir="rtl">
@@ -816,7 +746,7 @@ def generate_complete_infopulse_html(
             </div>
             <div class="header-content">
                 <div style="margin-bottom: 6px; text-align: center;">
-                    <svg width="220" height="70" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 220px; height: auto;">
+                    <svg width="210" height="65" viewBox="0 0 300 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width: 210px; height: auto;">
                         <path d="M10 45 H40 L55 20 L70 70 L85 8 L100 60 L115 30 L130 45 H160" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                         <circle cx="55" cy="20" r="4" fill="#10b981"/>
                         <circle cx="85" cy="8" r="4" fill="#10b981"/>
@@ -826,9 +756,9 @@ def generate_complete_infopulse_html(
                         <text x="160" y="85" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" fill="#38bdf8">إنفوبلس</text>
                     </svg>
                 </div>
-                <h2 style="margin:4px 0 0 0; font-size:19px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
-                <p style="margin:4px 0 0 0; font-size:12.5px; color:#a7f3d0; font-weight:500;">🇪🇬 جمهورية مصر العربية &bull; 🇴🇲 سلطنة عمان</p>
-                <p style="margin:4px 0 0 0; font-size:11.5px; color:#94a3b8;">⏱ __TIME_STR__</p>
+                <h2 style="margin:2px 0 0 0; font-size:18px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
+                <p style="margin:3px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">🇪🇬 جمهورية مصر العربية &bull; 🇴🇲 سلطنة عمان</p>
+                <p style="margin:3px 0 0 0; font-size:11px; color:#94a3b8;">⏱ __TIME_STR__</p>
             </div>
         </div>
         
@@ -840,10 +770,10 @@ def generate_complete_infopulse_html(
             <div class="ta-box">__TA_SUMMARY__</div>
             <table class="table-styled" dir="rtl">
                 <thead>
-                    <tr style="background-color: #f8fafc; color: #475569; font-size: 12px;">
-                        <th style="padding: 8px 10px; text-align: right;">العملة</th>
-                        <th style="padding: 8px 10px; text-align: center;">مصر (ج.م)</th>
-                        <th style="padding: 8px 10px; text-align: center;">عمان (ر.ع.)</th>
+                    <tr style="background-color: #f8fafc; color: #475569; font-size: 11.5px;">
+                        <th style="padding: 8px 8px; text-align: right;">العملة</th>
+                        <th style="padding: 8px 8px; text-align: center;">مصر (ج.م)</th>
+                        <th style="padding: 8px 8px; text-align: center;">عمان (ر.ع.)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -854,10 +784,10 @@ def generate_complete_infopulse_html(
             <div class="section-title">3️⃣ أسعار المعادن والسلع الكاملة (السوق المحلي)</div>
             <table class="table-styled" dir="rtl">
                 <thead>
-                    <tr style="background-color: #f8fafc; color: #475569; font-size: 12px;">
-                        <th style="padding: 8px 10px; text-align: right;">الصنف / المعدن</th>
-                        <th style="padding: 8px 10px; text-align: center;">مصر (ج.م)</th>
-                        <th style="padding: 8px 10px; text-align: center;">عمان (ر.ع.)</th>
+                    <tr style="background-color: #f8fafc; color: #475569; font-size: 11.5px;">
+                        <th style="padding: 8px 8px; text-align: right;">الصنف / المعدن</th>
+                        <th style="padding: 8px 8px; text-align: center;">مصر (ج.م)</th>
+                        <th style="padding: 8px 8px; text-align: center;">عمان (ر.ع.)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -868,8 +798,19 @@ def generate_complete_infopulse_html(
             <div class="section-title">4️⃣ التحليل الفني للعملات الرقمية</div>
             __CRYPTO_HTML__
 
-            <div class="section-title">5️⃣ دليل أسعار السيارات (مع لوجو الشركات الصانعة)</div>
-            __CARS_HTML__
+            <div class="section-title">5️⃣ دليل أسعار السيارات (متوسط السعر لكل دولة)</div>
+            <table class="table-styled" dir="rtl">
+                <thead>
+                    <tr style="background-color: #f8fafc; color: #475569; font-size: 11.5px;">
+                        <th style="padding: 8px 6px; text-align: right; width: 42%;">السيارة (اللوجو والموديل)</th>
+                        <th style="padding: 8px 4px; text-align: center; width: 29%;">متوسط مصر (ج.م)</th>
+                        <th style="padding: 8px 4px; text-align: center; width: 29%;">متوسط عمان (ر.ع.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    __CAR_ROWS__
+                </tbody>
+            </table>
 
             <div class="section-title">6️⃣ المؤشرات الاقتصادية الرسمية الشاملة</div>
             __MACRO_HTML__
@@ -890,7 +831,7 @@ def generate_complete_infopulse_html(
       .replace('__FOREX_ROWS__', forex_combined_rows)
       .replace('__COMMODITIES_ROWS__', commodities_rows)
       .replace('__CRYPTO_HTML__', crypto_html)
-      .replace('__CARS_HTML__', cars_html)
+      .replace('__CAR_ROWS__', car_rows_html)
       .replace('__MACRO_HTML__', macro_html)
   )
   return html
@@ -900,7 +841,7 @@ def generate_complete_infopulse_html(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse المدمج بالكامل بالنسخة المصلحة...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse بجدول السيارات والمؤشرات المحسنة للموبايل...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -928,7 +869,7 @@ def main_loop():
           ta_summary,
       ) = get_live_forex_and_commodities_full()
       merged_news = fetch_all_merged_news()
-      cars_egp, cars_omr = get_combined_auto_market_with_logos(usd_egp, usd_omr)
+      car_rows_html = get_unified_car_rows(usd_egp, usd_omr)
       macro_egp, macro_omr = get_full_macro_indicators()
       current_time_str = time.strftime('%Y-%m-%d %H:%M UTC')
 
@@ -1028,8 +969,7 @@ def main_loop():
             commodities_egp,
             commodities_omr,
             crypto_data_list,
-            cars_egp,
-            cars_omr,
+            car_rows_html,
             macro_egp,
             macro_omr,
             ta_summary,

@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 import time
@@ -16,7 +17,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-  return '🤖 Data River - Realtime Economic Developments Bot is running!'
+  return '🤖 InfoPulse - Realtime Economic Developments Bot is running!'
 
 
 def run_web_server():
@@ -25,7 +26,7 @@ def run_web_server():
 
 
 # ---------------------------------------------------------
-# 2. الثوابت ومتغيرات البيئة
+# 2. الثوابت ومتغيرات البيئة وهوية InfoPulse
 # ---------------------------------------------------------
 TELEGRAM_TOKEN = os.environ.get(
     'TELEGRAM_TOKEN', '8214213423:AAGifBdaeIxQLp3r8Ky0y0_Hvwedq2ia6Z4'
@@ -39,6 +40,12 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'mabunapoot@gmail.com')
 RECEIVER_EMAIL = os.environ.get('RECEIVER_EMAIL', 'mabunapoot@gmail.com')
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
 
+# يمكن وضع رابط الصورة المباشر أو خزنها هنا (رابط الصورة أو Data Base64)
+INFOPULSE_LOGO_URL = os.environ.get(
+    'INFOPULSE_LOGO_URL',
+    'https://raw.githubusercontent.com/mabunapoot/assets/main/infopulse_logo.png',
+)
+
 CHECK_INTERVAL_MINUTES = 5
 WHATSAPP_INTERVAL_HOURS = 2
 EMAIL_INTERVAL_HOURS = 3
@@ -46,7 +53,7 @@ TELEGRAM_INTERVAL_HOURS = 6
 
 
 # ---------------------------------------------------------
-# 3. خدمات الإرسال (إرسال إيميل HTML بتصميم RTL مميز)
+# 3. خدمات الإرسال (إرسال إيميل HTML بتصميم RTL تفاعلي)
 # ---------------------------------------------------------
 def send_email_report(subject, html_body):
   if not BREVO_API_KEY:
@@ -63,7 +70,7 @@ def send_email_report(subject, html_body):
   }
 
   payload = {
-      'sender': {'name': 'Data River', 'email': SENDER_EMAIL},
+      'sender': {'name': 'InfoPulse | إنفوبلس', 'email': SENDER_EMAIL},
       'to': [{'email': RECEIVER_EMAIL}],
       'subject': subject,
       'htmlContent': html_body,
@@ -205,7 +212,6 @@ def fetch_all_live_news():
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-  # محاولة جلب عيار 21 المباشر من السوق المصري
   try:
     url = 'https://api.gold-era.com/api/prices/gold'
     res = requests.get(url, headers=headers, timeout=5)
@@ -229,7 +235,6 @@ def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   except Exception:
     pass
 
-  # حساب تقديري دقيق بناءً على الأونصة وسعر الدولار محلياً
   g24_est = (gold_oz_usd / 31.1035) * usd_egp
   return g24_est * (21 / 24)
 
@@ -264,7 +269,6 @@ def get_live_forex_and_commodities():
         ),
     }
 
-    # الأونصة العالمية
     try:
       r_gold = requests.get(
           'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
@@ -285,11 +289,9 @@ def get_live_forex_and_commodities():
     # 4. أسعار الذهب في مصر (السوق المحلي) لجميع العيارات والفضة
     g21_local = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
     g24_local = g21_local * (24 / 21)
-
     silver_999_local = (silver_oz_usd / 31.1035) * usd_egp
 
     commodities = {
-        # عيارات الذهب الكاملة
         'الذهب عيار 24 (جرام)': g24_local,
         'الذهب عيار 22 (جرام)': g24_local * (22 / 24),
         'الذهب عيار 21 (جرام)': g21_local,
@@ -298,12 +300,10 @@ def get_live_forex_and_commodities():
         'الذهب عيار 12 (جرام)': g24_local * (12 / 24),
         'الجنيه الذهب (8 جرام عيار 21)': g21_local * 8,
         'أونصة الذهب محلياً (31.1 جرام عيار 24)': g24_local * 31.1035,
-        # عيارات الفضة الكاملة
         'الفضة عيار 999 (سبيكة/جرام)': silver_999_local,
         'الفضة عيار 925 (استرليني/جرام)': silver_999_local * 0.925,
         'الفضة عيار 900 (جرام)': silver_999_local * 0.900,
         'الفضة عيار 800 (مجوهرات/جرام)': silver_999_local * 0.800,
-        # المواد الخام والحبوب
         'النفط خام برنت (برميل)': 78.5 * usd_egp,
         'القمح العالمي (طن)': 245.0 * usd_egp,
         'الذرة العالمية (طن)': 175.0 * usd_egp,
@@ -444,9 +444,9 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد البريد الإلكتروني HTML باسم "التطورات الاقتصادية من Data River"
+# 8. توليد البريد الإلكتروني HTML التفاعلي لماركة InfoPulse (RTL)
 # ---------------------------------------------------------
-def generate_ordered_html_email(
+def generate_infopulse_html_email(
     current_time_str,
     economic_news,
     auto_industry_news,
@@ -463,15 +463,19 @@ def generate_ordered_html_email(
   econ_news_html = ''
   for region, items in economic_news.items():
     econ_news_html += f"""
-        <div style="background-color: #ffffff; border-right: 4px solid #0284c7; border-radius: 8px; padding: 12px 15px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <h4 style="margin: 0 0 8px 0; color: #0f172a; font-size: 15px;">{region}</h4>
+        <div style="background-color: #ffffff; border-right: 4px solid #10b981; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+            <h4 style="margin: 0 0 10px 0; color: #0b192c; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                <span style="color: #10b981;">⚡</span> {region}
+            </h4>
             <ul style="margin: 0; padding-right: 18px; color: #334155; font-size: 13px; line-height: 1.6;">
     """
     for item in items:
       econ_news_html += f"""
-                <li style="margin-bottom: 8px;">
-                    <div><b>{item['title']}</b></div>
-                    <a href="{item['link']}" target="_blank" style="font-size: 11px; color: #2563eb; text-decoration: underline; word-break: break-all;">🔗 رابط المصدر</a>
+                <li style="margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #1e293b;">{item['title']}</div>
+                    <div style="margin-top: 3px;">
+                        <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #0284c7; background-color: #e0f2fe; padding: 2px 10px; border-radius: 12px; text-decoration: none; font-weight: 500;">🔗 رابط المصدر</a>
+                    </div>
                 </li>
       """
     econ_news_html += '</ul></div>'
@@ -480,15 +484,19 @@ def generate_ordered_html_email(
   auto_news_html = ''
   for region, items in auto_industry_news.items():
     auto_news_html += f"""
-        <div style="background-color: #f0f7ff; border-right: 4px solid #1d4ed8; border-radius: 8px; padding: 12px 15px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <h4 style="margin: 0 0 8px 0; color: #1e3a8a; font-size: 15px;">{region}</h4>
+        <div style="background-color: #f0fdf4; border-right: 4px solid #059669; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+            <h4 style="margin: 0 0 10px 0; color: #065f46; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                <span>⚙️</span> {region}
+            </h4>
             <ul style="margin: 0; padding-right: 18px; color: #1e293b; font-size: 13px; line-height: 1.6;">
     """
     for item in items:
       auto_news_html += f"""
-                <li style="margin-bottom: 8px;">
-                    <div><b>{item['title']}</b></div>
-                    <a href="{item['link']}" target="_blank" style="font-size: 11px; color: #1d4ed8; text-decoration: underline; word-break: break-all;">🔗 رابط المصدر</a>
+                <li style="margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #0f172a;">{item['title']}</div>
+                    <div style="margin-top: 3px;">
+                        <a href="{item['link']}" target="_blank" style="display: inline-block; font-size: 11px; color: #059669; background-color: #d1fae5; padding: 2px 10px; border-radius: 12px; text-decoration: none; font-weight: 500;">🔗 رابط المصدر</a>
+                    </div>
                 </li>
       """
     auto_news_html += '</ul></div>'
@@ -497,9 +505,9 @@ def generate_ordered_html_email(
   forex_rows = ''
   for curr, rate in forex_rates.items():
     forex_rows += f"""
-        <tr>
-            <td style="padding: 9px; border-bottom: 1px solid #f1f5f9; color: #1e293b;">{curr}</td>
-            <td style="padding: 9px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #0f172a; text-align: left;">{rate:,.2f} ج.م</td>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px 12px; color: #1e293b; font-weight: 500;">{curr}</td>
+            <td style="padding: 10px 12px; font-weight: 700; color: #0b192c; text-align: left;">{rate:,.2f} ج.م</td>
         </tr>
     """
 
@@ -507,9 +515,9 @@ def generate_ordered_html_email(
   commodities_rows = ''
   for item, price in commodities.items():
     commodities_rows += f"""
-        <tr>
-            <td style="padding: 9px; border-bottom: 1px solid #f1f5f9; color: #1e293b;">{item}</td>
-            <td style="padding: 9px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #b45309; text-align: left;">{price:,.2f} ج.م</td>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px 12px; color: #1e293b; font-weight: 500;">{item}</td>
+            <td style="padding: 10px 12px; font-weight: 700; color: #d97706; text-align: left;">{price:,.2f} ج.م</td>
         </tr>
     """
 
@@ -519,13 +527,13 @@ def generate_ordered_html_email(
     badge_bg = '#dcfce7' if c['status_short'] == 'Buy' else '#fee2e2'
     badge_color = '#15803d' if c['status_short'] == 'Buy' else '#b91c1c'
     crypto_html += f"""
-        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 8px; background-color: #fafafa;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: bold; color: #0f172a; font-size: 14px;">🪙 {c['name']}</span>
-                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold;">{c['status_short']}</span>
+        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl;">
+                <span style="font-weight: 700; color: #0b192c; font-size: 14px;">🪙 {c['name']}</span>
+                <span style="background-color: {badge_bg}; color: {badge_color}; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;">{c['status_short']}</span>
             </div>
-            <div style="margin-top: 6px; font-size: 12px; color: #475569;">
-                السعر: <b>${c['price_usd']:,.2f}</b> ({c['price_egp']:,.0f} ج.م) | RSI: <b>{c['rsi']:.1f}</b> | SMA10: ${c['sma10']:,.0f}
+            <div style="margin-top: 8px; font-size: 12px; color: #475569; line-height: 1.5; direction: rtl; text-align: right;">
+                السعر: <b style="color:#0b192c;">${c['price_usd']:,.2f}</b> ({c['price_egp']:,.0f} ج.م) &bull; RSI: <b>{c['rsi']:.1f}</b> &bull; SMA10: <b>${c['sma10']:,.0f}</b>
             </div>
         </div>
     """
@@ -533,7 +541,7 @@ def generate_ordered_html_email(
   # 6. دليل أسعار السيارات في مصر (ماركات أوروبية وآسيوية فقط)
   auto_market_html = ''
   for brand_cat, models in auto_market_data.items():
-    auto_market_html += f'<h4 style="color: #1e293b; margin: 10px 0 6px 0;">{brand_cat}</h4><ul style="margin: 0; padding-right: 18px; font-size: 13px; color: #334155;">'
+    auto_market_html += f'<h4 style="color: #0b192c; margin: 12px 0 6px 0; font-size: 14px;">{brand_cat}</h4><ul style="margin: 0; padding-right: 18px; font-size: 13px; color: #334155; line-height: 1.7;">'
     for m_name, m_price in models.items():
       auto_market_html += (
           f'<li style="margin-bottom: 4px;"><b>{m_name}:</b> {m_price}</li>'
@@ -544,9 +552,9 @@ def generate_ordered_html_email(
   macro_rows = ''
   for k, v in egypt_macro.items():
     macro_rows += f"""
-        <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #f1f5f9; color: #334155;">{k}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #f1f5f9; font-weight: bold; color: #0284c7; text-align: left;">{v}</td>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 9px 12px; color: #334155;">{k}</td>
+            <td style="padding: 9px 12px; font-weight: 700; color: #0284c7; text-align: left;">{v}</td>
         </tr>
     """
 
@@ -555,25 +563,35 @@ def generate_ordered_html_email(
     <html dir="rtl" lang="ar">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 15px; text-align: right; }}
-            .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }}
-            .header {{ background: linear-gradient(135deg, #0f172a, #1e293b); color: #ffffff; padding: 20px; text-align: center; }}
-            .content {{ padding: 20px; }}
-            .section-title {{ font-size: 16px; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 5px; margin-top: 22px; margin-bottom: 12px; font-weight: bold; }}
-            .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }}
-            .ta-box {{ background-color: #f8fafc; border-right: 3px solid #10b981; padding: 8px 12px; font-size: 12px; color: #0f766e; margin-bottom: 12px; border-radius: 4px; }}
-            .footer {{ background-color: #f1f5f9; padding: 12px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }}
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px 10px; text-align: right; direction: rtl; }}
+            .container {{ max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; direction: rtl; }}
+            .header {{ background: linear-gradient(135deg, #0b192c 0%, #1e293b 100%); color: #ffffff; padding: 28px 20px; text-align: center; border-bottom: 4px solid #10b981; }}
+            .logo-container {{ margin-bottom: 12px; text-align: center; }}
+            .logo-img {{ max-width: 220px; height: auto; filter: drop-shadow(0px 2px 8px rgba(0,0,0,0.3)); }}
+            .content {{ padding: 25px 20px; text-align: right; direction: rtl; }}
+            .section-title {{ font-size: 16px; color: #0b192c; border-bottom: 2px solid #10b981; padding-bottom: 6px; margin-top: 24px; margin-bottom: 14px; font-weight: 700; text-align: right; }}
+            .table-styled {{ width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 13px; text-align: right; direction: rtl; }}
+            .ta-box {{ background-color: #ecfdf5; border-right: 4px solid #10b981; padding: 10px 14px; font-size: 12px; color: #047857; margin-bottom: 14px; border-radius: 6px; font-weight: 500; line-height: 1.5; }}
+            .footer {{ background-color: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; line-height: 1.5; }}
         </style>
     </head>
-    <body>
-        <div class="container">
+    <body dir="rtl">
+        <div class="container" dir="rtl">
             <div class="header">
-                <h2 style="margin:0; font-size:20px;">التطورات الاقتصادية من Data River</h2>
-                <p style="margin:6px 0 0 0; font-size:12px; color:#94a3b8;">⏱ التوقيت: {current_time_str}</p>
+                <div class="logo-container">
+                    <img src="{INFOPULSE_LOGO_URL}" alt="InfoPulse - إنفوبلس" class="logo-img" onerror="this.style.display='none'; document.getElementById('text-logo').style.display='block';">
+                    <div id="text-logo" style="display:none; font-size:26px; font-weight:bold; color:#ffffff; letter-spacing:1px;">
+                        <span style="color:#ffffff;">Info</span><span style="color:#10b981;">Pulse</span>
+                        <div style="font-size:18px; color:#94a3b8; margin-top:2px;">إنفوبلس</div>
+                    </div>
+                </div>
+                <h2 style="margin:10px 0 0 0; font-size:20px; color:#ffffff; font-weight:700;">التطورات الاقتصادية من إنفوبلس</h2>
+                <p style="margin:6px 0 0 0; font-size:12px; color:#a7f3d0; font-weight:500;">⏱ التوقيت: {current_time_str}</p>
             </div>
             
-            <div class="content">
+            <div class="content" dir="rtl">
                 <!-- 1. أهم الأخبار الاقتصادية العامة -->
                 <div class="section-title">1️⃣ أهم الأخبار الاقتصادية العامة</div>
                 {econ_news_html}
@@ -585,14 +603,14 @@ def generate_ordered_html_email(
                 <!-- 3. أسعار العملات -->
                 <div class="section-title">3️⃣ أسعار العملات</div>
                 <div class="ta-box">{forex_ta}</div>
-                <table class="table-styled">
+                <table class="table-styled" dir="rtl">
                     {forex_rows}
                 </table>
 
-                <!-- 4. أسعار الذهب في مصر (السوق المحلي) والمعادن -->
+                <!-- 4. أسعار الذهب في مصر (السوق المحلي والمعادن) -->
                 <div class="section-title">4️⃣ أسعار الذهب في مصر (السوق المحلي والمعادن)</div>
                 <div class="ta-box">{commodities_ta}</div>
-                <table class="table-styled">
+                <table class="table-styled" dir="rtl">
                     {commodities_rows}
                 </table>
 
@@ -606,13 +624,14 @@ def generate_ordered_html_email(
 
                 <!-- 7. المؤشرات الاقتصادية الرسمية (مصر) -->
                 <div class="section-title">7️⃣ المؤشرات الاقتصادية الرسمية (مصر)</div>
-                <table class="table-styled">
+                <table class="table-styled" dir="rtl">
                     {macro_rows}
                 </table>
             </div>
 
             <div class="footer">
-                ⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة بواسطة Data River | جميع الأسعار معرّفة بالجنيه المصري (ج.م).
+                ⚙️ يُولد هذا التقرير المالي تلقائياً عبر السحابة بواسطة <b>InfoPulse | إنفوبلس</b><br>
+                جميع الأسعار مقومة بالجنيه المصري (ج.م).
             </div>
         </div>
     </body>
@@ -625,7 +644,10 @@ def generate_ordered_html_email(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت Data River بالتسميات الجديدة...', flush=True)
+  print(
+      '🤖 بدأ تشغيل بوت InfoPulse (إنفوبلس) مع التنسيق التفاعلي RTL...',
+      flush=True,
+  )
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -710,7 +732,7 @@ def main_loop():
           current_time - last_telegram_time >= (TELEGRAM_INTERVAL_HOURS * 3600)
           or last_telegram_time == 0
       ):
-        tg_report = f"""📊 التطورات الاقتصادية من Data River
+        tg_report = f"""📊 التطورات الاقتصادية من إنفوبلس
 ⏱ التوقيت: {current_time_str}
 ===================================
 {news_tg_summary}{auto_tg_summary}
@@ -724,7 +746,7 @@ def main_loop():
 
 5️⃣ العملات الرقمية:
 {wa_crypto_details}
-⚙️ Data River Automated Engine"""
+⚙️ InfoPulse Automated Engine"""
 
         if send_telegram_message(tg_report):
           print('✅ تم إرسال تقرير تيليجرام بنجاح.', flush=True)
@@ -735,7 +757,7 @@ def main_loop():
           current_time - last_whatsapp_time >= (WHATSAPP_INTERVAL_HOURS * 3600)
           or last_whatsapp_time == 0
       ):
-        wa_msg = f"""📊 *التطورات الاقتصادية من Data River*
+        wa_msg = f"""📊 *التطورات الاقتصادية من إنفوبلس*
 ⏱ {current_time_str}
 -----------------------------------
 📰 *أبرز عناوين الأخبار والسيارات:*
@@ -750,12 +772,12 @@ def main_loop():
           print('✅ تم إرسال تقرير الواتساب بنجاح.', flush=True)
           last_whatsapp_time = current_time
 
-      # --- 3. إرسال البريد الإلكتروني (كل 3 ساعات) ---
+      # --- 3. إرسال البريد الإلكتروني المنسق الشامل (كل 3 ساعات) ---
       if (
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
       ):
-        email_html = generate_ordered_html_email(
+        email_html = generate_infopulse_html_email(
             current_time_str,
             economic_news,
             auto_industry_news,
@@ -768,10 +790,10 @@ def main_loop():
             egypt_macro,
         )
 
-        subject = f'التطورات الاقتصادية من Data River - {current_time_str}'
+        subject = f'التطورات الاقتصادية من إنفوبلس - {current_time_str}'
 
         if send_email_report(subject, email_html):
-          print('✅ تم إرسال البريد الإلكتروني بنجاح.', flush=True)
+          print('✅ تم إرسال بريد إنفوبلس بنجاح.', flush=True)
           last_email_time = current_time
 
     except Exception as e:

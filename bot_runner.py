@@ -118,8 +118,74 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 5. البيانات الكلية والأخبار الحية
+# 5. جلب الأخبار الاقتصادية الحية من مصادر متعددة (Multi-Source Fallback)
 # ---------------------------------------------------------
+def fetch_live_arabic_news():
+  news_data = {}
+
+  # مصادر متعددة متناوبة لكل منطقة لضمان الحداثة وعدم الانقطاع
+  sources = {
+      '🌍 مصر والشرق الأوسط': [
+          'https://www.mubasher.info/rss/news/egypt',
+          'https://www.skynewsarabia.com/rss/v1/economy.xml',
+          'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar',
+      ],
+      '🇺🇸 أمريكا والفيدرالي': [
+          'https://sa.investing.com/rss/news_285.rss',
+          'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
+      ],
+      '🇪🇺 أوروبا وروسيا': [
+          'https://news.google.com/rss/search?q=المركزي+الأوروبي+تضخم&hl=ar&gl=EG&ceid=EG:ar',
+          'https://www.skynewsarabia.com/rss/v1/economy.xml',
+      ],
+      '🪙 أسواق النفط والمعادن والأسواق العالمية': [
+          'https://sa.investing.com/rss/news_14.rss',
+          'https://news.google.com/rss/search?q=أسعار+النفط+الذهب+الأسواق&hl=ar&gl=EG&ceid=EG:ar',
+      ],
+  }
+
+  headers = {
+      'User-Agent': (
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          ' (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      )
+  }
+
+  for region, url_list in sources.items():
+    headlines = []
+    for url in url_list:
+      try:
+        res = requests.get(url, headers=headers, timeout=6)
+        if res.status_code == 200:
+          root = ET.fromstring(res.content)
+          items = root.findall('.//item/title')[:2]
+
+          for item in items:
+            if item.text:
+              title_clean = item.text.split(' - ')[0].strip()
+              # تنظيف الوسوم والعناوين المكررة
+              title_clean = re.sub('<[^<]+?>', '', title_clean)
+              if (
+                  title_clean
+                  and len(title_clean) > 10
+                  and title_clean not in headlines
+              ):
+                headlines.append(title_clean)
+
+          if len(headlines) >= 2:
+            print(f'✅ تم جلب أخبار {region} بنجاح من المصدر.', flush=True)
+            break
+      except Exception as e:
+        print(f'⚠️ فشل جلب الأخبار من {url}: {e}', flush=True)
+        continue
+
+    news_data[region] = (
+        headlines[:2] if headlines else ['متابعة مستمرة لأحدث التحركات الاقتصادية.']
+    )
+
+  return news_data
+
+
 def get_egypt_macro_indicators():
   return {
       'سعر الفائدة الرئيسي (البنك المركزي CBE)': '19.50%',
@@ -134,53 +200,6 @@ def get_egypt_macro_indicators():
       'احتياطي النقد الأجنبي المباشر (CBE)': '57.34 مليار دولار',
       'عدد السكان الرسمي بالداخل (CAPMAS)': '107.5 مليون نسمة',
   }
-
-
-def fetch_live_arabic_news():
-  news_data = {}
-  sources = {
-      '🇺🇸 أمريكا والفيدرالي': (
-          'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar'
-      ),
-      '🇪🇺 أوروبا وروسيا': (
-          'https://news.google.com/rss/search?q=المركزي+الأوروبي+روسيا+تضخم&hl=ar&gl=EG&ceid=EG:ar'
-      ),
-      '🇨🇳 🇯🇵 أسواق آسيا': (
-          'https://news.google.com/rss/search?q=اقتصاد+الصين+اليابان+أسواق&hl=ar&gl=EG&ceid=EG:ar'
-      ),
-      '🌍 مصر والشرق الأوسط': (
-          'https://news.google.com/rss/search?q=اقتصاد+مصر+البنك+المركزي&hl=ar&gl=EG&ceid=EG:ar'
-      ),
-  }
-
-  headers = {
-      'User-Agent': (
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          ' (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
-      )
-  }
-
-  for region, url in sources.items():
-    try:
-      res = requests.get(url, headers=headers, timeout=8)
-      if res.status_code == 200:
-        root = ET.fromstring(res.content)
-        items = root.findall('.//item/title')[:2]
-        headlines = [
-            item.text.rsplit(' - ', 1)[0]
-            for item in items
-            if item.text is not None
-        ]
-        news_data[region] = (
-            headlines
-            if headlines
-            else ['متابعة تحركات الأسواق العالمية والمحلية مباشرة.']
-        )
-      else:
-        news_data[region] = ['تغطية إخبارية اقتصادية مستمرة باللغة العربية.']
-    except Exception:
-      news_data[region] = ['تغطية إخبارية اقتصادية مستمرة باللغة العربية.']
-  return news_data
 
 
 # ---------------------------------------------------------
@@ -355,7 +374,7 @@ def fetch_technical_data(pair_symbol):
 # 7. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت مع التقرير الشامل الكامل...', flush=True)
+  print('🤖 بدأ تشغيل البوت المحدث بنظام المصادر الإخبارية المتعددة...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -462,10 +481,10 @@ def main_loop():
             f" {egypt_macro.get('معدل البطالة (الجهاز المركزي للإحصاء CAPMAS)')}\n"
         )
 
-        full_tg_report = f"""📊 تقرير السوق الشامل والنشرة الإخبارية
+        full_tg_report = f"""📊 تقرير السوق الشامل والنشرة الإخبارية الحية
 ⏱ التوقيت: {current_time_str}
 ===================================
-📰 أهم الأخبار الاقتصادية:
+📰 أهم الأخبار الاقتصادية الحية:
 {news_summary_str}
 ===================================
 {forex_msg_tg}{macro_tg}===================================
@@ -483,7 +502,7 @@ def main_loop():
         wa_msg = f"""📊 *تقرير السوق والأخبار العاجلة*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز عناوين الأخبار:*
+📰 *أبرز عناوين الأخبار الحية:*
 {news_summary_str}
 -----------------------------------
 💵 *أسعار العملات (EGP):*
@@ -502,7 +521,7 @@ def main_loop():
           print('✅ تم إرسال تقرير الواتساب بنجاح.', flush=True)
           last_whatsapp_time = current_time
 
-      # --- 3. إرسال البريد الإلكتروني الشامل بالكامل (كل 3 ساعات) ---
+      # --- 3. إرسال البريد الإلكتروني الشامل الكامل (كل 3 ساعات) ---
       if (
           current_time - last_email_time >= (EMAIL_INTERVAL_HOURS * 3600)
           or last_email_time == 0
@@ -525,7 +544,7 @@ def main_loop():
 المستلم: {RECEIVER_EMAIL}
 ==================================================
 
-1️⃣ النشرة الاقتصادية العاجلة (باللغة العربية بالكامل):
+1️⃣ النشرة الاقتصادية العاجلة والحية (مصادر متعددة):
 --------------------------------------------------{news_summary_str}
 
 2️⃣ المؤشرات الاقتصادية الكلية (البنك المركزي + CAPMAS + صندوق النقد الدولي):
@@ -560,7 +579,7 @@ def main_loop():
         )
 
         if send_email_report(email_subject, email_report):
-          print('✅ تم إرسال البريد الإلكتروني الشامل بنجاح.', flush=True)
+          print('✅ تم إرسال البريد الإلكتروني بنجاح.', flush=True)
           last_email_time = current_time
 
     except Exception as e:

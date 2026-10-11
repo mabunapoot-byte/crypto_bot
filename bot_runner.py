@@ -118,12 +118,12 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 5. جلب الأخبار الاقتصادية الحية من مصادر متعددة (Multi-Source Fallback)
+# 5. جلب الأخبار الاقتصادية الحية من مصادر متعددة (مع قطاع قطع غيار السيارات)
 # ---------------------------------------------------------
 def fetch_live_arabic_news():
   news_data = {}
 
-  # مصادر متعددة متناوبة لكل منطقة لضمان الحداثة وعدم الانقطاع
+  # مصادر متنوعة ومتناوبة تضمن الحداثة في جميع المجالات بما فيها قطاع قطع غيار السيارات
   sources = {
       '🌍 مصر والشرق الأوسط': [
           'https://www.mubasher.info/rss/news/egypt',
@@ -133,6 +133,11 @@ def fetch_live_arabic_news():
       '🇺🇸 أمريكا والفيدرالي': [
           'https://sa.investing.com/rss/news_285.rss',
           'https://news.google.com/rss/search?q=الفيدرالي+الأمريكي+الاقتصاد&hl=ar&gl=EG&ceid=EG:ar',
+      ],
+      '🏎️ صناعة وقطع غيار السيارات العالمية (Bosch, Valeo...)': [
+          'https://news.google.com/rss/search?q=صناعة+قطع+غيار+السيارات+Bosch+Valeo&hl=ar&gl=EG&ceid=EG:ar',
+          'https://news.google.com/rss/search?q=شركات+قطع+غيار+السيارات+عالميا&hl=ar&gl=EG&ceid=EG:ar',
+          'https://news.google.com/rss/search?q=Bosch+Valeo+automotive+industry&hl=ar&gl=EG&ceid=EG:ar',
       ],
       '🇪🇺 أوروبا وروسيا': [
           'https://news.google.com/rss/search?q=المركزي+الأوروبي+تضخم&hl=ar&gl=EG&ceid=EG:ar',
@@ -163,7 +168,6 @@ def fetch_live_arabic_news():
           for item in items:
             if item.text:
               title_clean = item.text.split(' - ')[0].strip()
-              # تنظيف الوسوم والعناوين المكررة
               title_clean = re.sub('<[^<]+?>', '', title_clean)
               if (
                   title_clean
@@ -173,7 +177,7 @@ def fetch_live_arabic_news():
                 headlines.append(title_clean)
 
           if len(headlines) >= 2:
-            print(f'✅ تم جلب أخبار {region} بنجاح من المصدر.', flush=True)
+            print(f'✅ تم جلب أخبار {region} بنجاح.', flush=True)
             break
       except Exception as e:
         print(f'⚠️ فشل جلب الأخبار من {url}: {e}', flush=True)
@@ -374,7 +378,10 @@ def fetch_technical_data(pair_symbol):
 # 7. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل البوت المحدث بنظام المصادر الإخبارية المتعددة...', flush=True)
+  print(
+      '🤖 بدأ تشغيل البوت المحدث بنظام أخبار قطاع قطع غيار السيارات...',
+      flush=True,
+  )
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -484,7 +491,7 @@ def main_loop():
         full_tg_report = f"""📊 تقرير السوق الشامل والنشرة الإخبارية الحية
 ⏱ التوقيت: {current_time_str}
 ===================================
-📰 أهم الأخبار الاقتصادية الحية:
+📰 أهم الأخبار الاقتصادية وقطاع السيارات:
 {news_summary_str}
 ===================================
 {forex_msg_tg}{macro_tg}===================================
@@ -502,7 +509,7 @@ def main_loop():
         wa_msg = f"""📊 *تقرير السوق والأخبار العاجلة*
 ⏱ {current_time_str}
 -----------------------------------
-📰 *أبرز عناوين الأخبار الحية:*
+📰 *أبرز عناوين الأخبار وقطاع السيارات:*
 {news_summary_str}
 -----------------------------------
 💵 *أسعار العملات (EGP):*
@@ -544,56 +551,7 @@ def main_loop():
 المستلم: {RECEIVER_EMAIL}
 ==================================================
 
-1️⃣ النشرة الاقتصادية العاجلة والحية (مصادر متعددة):
+1️⃣ النشرة الاقتصادية العاجلة وقطاع السيارات العالمية:
 --------------------------------------------------{news_summary_str}
 
-2️⃣ المؤشرات الاقتصادية الكلية (البنك المركزي + CAPMAS + صندوق النقد الدولي):
---------------------------------------------------
-{macro_str}
-
-3️⃣ أسعار العملات الأجنبية المباشرة بالجنيه المصري:
---------------------------------------------------
-• USD (دولار أمريكي): {usd_egp:.2f} ج.م
-• EUR (يورو): {forex_rates.get('EUR', 0):.2f} ج.م
-• GBP (جنيه إسترليني): {forex_rates.get('GBP', 0):.2f} ج.م
-• SAR (ريال سعودي): {forex_rates.get('SAR', 0):.2f} ج.م
-• AED (درهم إماراتي): {forex_rates.get('AED', 0):.2f} ج.م
-• KWD (دينار كويتي): {forex_rates.get('KWD', 0):.2f} ج.م
-
-4️⃣ بورصة الصاغة المصرية والمعادن (الأونصة العالمية: ${gold_oz:,.2f}):
---------------------------------------------------
-{metals_str}
-
-5️⃣ مؤشرات وتحليل العملات الرقمية المباشر:
---------------------------------------------------
-{crypto_msg_tg}
-
-6️⃣ مؤشر ودليل أسعار السيارات في مصر (محدث ديناميكياً):
---------------------------------------------------{auto_str}
-
-==================================================
-⚙️ يُولد هذا التقرير المالي تلقائياً كل 3 ساعات عبر السحابة.
-"""
-        email_subject = (
-            f'📈 التقرير المالي والإقتصادي الشامل - {current_time_str}'
-        )
-
-        if send_email_report(email_subject, email_report):
-          print('✅ تم إرسال البريد الإلكتروني بنجاح.', flush=True)
-          last_email_time = current_time
-
-    except Exception as e:
-      print(f'❌ خطأ في الحلقة الرئيسية: {e}', flush=True)
-
-    time.sleep(CHECK_INTERVAL_MINUTES * 60)
-
-
-# ---------------------------------------------------------
-# 8. نقطة الانطلاق
-# ---------------------------------------------------------
-if __name__ == '__main__':
-  web_thread = Thread(target=run_web_server)
-  web_thread.daemon = True
-  web_thread.start()
-
-  main_loop()
+2️⃣ المؤشرات

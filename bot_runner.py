@@ -178,7 +178,7 @@ def fetch_all_merged_news():
 
 
 # ---------------------------------------------------------
-# 5. البيانات المالية المحدثة (العملات + المعادن والسلع + المحروقات والغاز)
+# 5. البيانات المالية المحدثة وفق أسعار السوق المحلي الحقيقي
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -301,22 +301,23 @@ def get_live_forex_and_commodities_full():
         'الذهب عيار 18 (جرام)': g24_egp * (18 / 24),
         'الذهب عيار 14 (جرام)': g24_egp * (14 / 24),
         'الذهب عيار 12 (جرام)': g24_egp * (12 / 24),
-        'الجنيه الذهب (8 جرام عيار 21)': g21_egp * 8,
+        'الجنيه/الريال الذهب (8 جرام عيار 21)': g21_egp * 8,
         'أونصة الذهب محلياً (31.1 جرام)': g24_egp * 31.1035,
         'الفضة عيار 999 (جرام)': silver_999_egp,
         'الفضة عيار 925 (جرام)': silver_999_egp * 0.925,
-        'بنزين 95 الممتاز (لتر)': 24.00,
-        'بنزين 92 العادي (لتر)': 22.25,
+        'بنزين ممتاز 95 (لتر)': 24.00,
+        'بنزين عادي 92 / 91 (لتر)': 22.25,
         'بنزين 80 (لتر)': 20.75,
         'السولار / الديزل (لتر)': 20.50,
-        'غاز تموين السيارات (م³)': 13.00,
-        'الغاز الطبيعي للمنازل (م³ شريحة 1)': 5.00,
+        'غاز تموين السيارات CNG (م³)': 13.00,
+        'أسطوانة غاز الطهي المنزلية': 275.00,
+        'الغاز الطبيعي للمنازل (شريحة 1)': 5.00,
         'النفط خام برنت (برميل)': 78.5 * usd_egp,
         'القمح العالمي (طن)': 245.0 * usd_egp,
         'النحاس الصناعي (طن)': 9500.0 * usd_egp,
     }
 
-    # 3. أسعار الذهب والسلع والمحروقات - سلطنة عمان (ر.ع.)
+    # 3. أسعار الذهب والسلع والمحروقات - سلطنة عمان (ر.ع.) - مفاتيح موحدة تماماً
     g24_omr = (gold_oz_usd / 31.1035) * usd_omr  # ≈ 51.94 ر.ع.
     g22_omr = g24_omr * (22 / 24)  # ≈ 47.61 ر.ع.
     g21_omr = g24_omr * (21 / 24)  # ≈ 45.45 ر.ع.
@@ -330,15 +331,17 @@ def get_live_forex_and_commodities_full():
         'الذهب عيار 18 (جرام)': g18_omr,
         'الذهب عيار 14 (جرام)': g24_omr * (14 / 24),
         'الذهب عيار 12 (جرام)': g24_omr * (12 / 24),
-        'الريال الذهب (8 جرام عيار 21/22)': g21_omr * 8,
-        'أونصة الذهب عمانياً (31.1 جرام)': g24_omr * 31.1035,
+        'الجنيه/الريال الذهب (8 جرام عيار 21)': g21_omr * 8,
+        'أونصة الذهب محلياً (31.1 جرام)': g24_omr * 31.1035,
         'الفضة عيار 999 (جرام)': silver_999_omr,
         'الفضة عيار 925 (جرام)': silver_999_omr * 0.925,
         'بنزين ممتاز 95 (لتر)': 0.239,
-        'بنزين عادي 91 (لتر)': 0.229,
-        'الديزل / السولار (لتر)': 0.258,
-        'غاز السيارات والمنازل (م³)': 0.180,
-        'النفط خام عمان (برميل)': 79.2 * usd_omr,
+        'بنزين عادي 92 / 91 (لتر)': 0.229,
+        'بنزين 80 (لتر)': None,
+        'السولار / الديزل (لتر)': 0.258,
+        'غاز تموين السيارات CNG (م³)': 0.180,
+        'أسطوانة غاز الطهي المنزلية': 2.000,
+        'الغاز الطبيعي للمنازل (شريحة 1)': 0.150,
         'النفط خام برنت (برميل)': 78.5 * usd_omr,
         'القمح العالمي (طن)': 245.0 * usd_omr,
         'النحاس الصناعي (طن)': 9500.0 * usd_omr,
@@ -397,12 +400,6 @@ CAR_LOGOS_BADGES = {
         ' border-radius:4px; margin-left:6px;'
         ' font-family:sans-serif;">SKODA</span>'
     ),
-    'Renault': (
-        '<span style="display:inline-block; background-color:#d97706;'
-        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
-        ' border-radius:4px; margin-left:6px;'
-        ' font-family:sans-serif;">RENAULT</span>'
-    ),
     'Toyota': (
         '<span style="display:inline-block; background-color:#dc2626;'
         ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
@@ -426,17 +423,6 @@ CAR_LOGOS_BADGES = {
         ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
         ' border-radius:4px; margin-left:6px; font-family:sans-serif;">KIA</span>'
     ),
-    'Chery': (
-        '<span style="display:inline-block; background-color:#9f1239;'
-        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
-        ' border-radius:4px; margin-left:6px;'
-        ' font-family:sans-serif;">CHERY</span>'
-    ),
-    'MG': (
-        '<span style="display:inline-block; background-color:#b91c1c;'
-        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
-        ' border-radius:4px; margin-left:6px; font-family:sans-serif;">MG</span>'
-    ),
     'BYD': (
         '<span style="display:inline-block; background-color:#0f172a;'
         ' color:#38bdf8; font-size:9.5px; font-weight:800; padding:2px 6px;'
@@ -446,113 +432,109 @@ CAR_LOGOS_BADGES = {
 
 
 def get_unified_car_rows(usd_egp, usd_omr):
-  factor_egp = usd_egp / 47.4
-  factor_omr = usd_omr / 0.3845
-
-  # قائمة السيارات دون كتابة الاسم التجاري للشركة أو بلد الصنع (اكتفاء باللوجو والموديل)
-  # تتضمن موديلات التويوتا والنيسان الدفع الرباعي والدبل كابينة بمختلف فئاتها
+  # أسعار مبنية بدقة على أسعار السوق المحلي الحقيقي لمصر وسلطنة عمان (2026)
   car_list = [
       {
           'logo': CAR_LOGOS_BADGES['Mercedes'],
           'name': 'C200',
-          'avg_egp': int(3600000 * factor_egp),
-          'avg_omr': int(25750 * factor_omr),
+          'avg_egp': 4300000,
+          'avg_omr': 26500,
       },
       {
           'logo': CAR_LOGOS_BADGES['BMW'],
           'name': '320i',
-          'avg_egp': int(3400000 * factor_egp),
-          'avg_omr': int(24250 * factor_omr),
+          'avg_egp': 3750000,
+          'avg_omr': 24500,
       },
       {
           'logo': CAR_LOGOS_BADGES['VW'],
           'name': 'ID.4 (Electric)',
-          'avg_egp': int(1750000 * factor_egp),
-          'avg_omr': int(14650 * factor_omr),
+          'avg_egp': 1950000,
+          'avg_omr': 13500,
       },
       {
           'logo': CAR_LOGOS_BADGES['Toyota'],
-          'name': 'Land Cruiser V8 / V6 4x4',
-          'avg_egp': int(5200000 * factor_egp),
-          'avg_omr': int(34500 * factor_omr),
+          'name': 'Land Cruiser V8/V6 4x4',
+          'avg_egp': 9850000,
+          'avg_omr': 32500,
       },
       {
           'logo': CAR_LOGOS_BADGES['Toyota'],
           'name': 'Prado TXL 4x4',
-          'avg_egp': int(3950000 * factor_egp),
-          'avg_omr': int(21800 * factor_omr),
+          'avg_egp': 4950000,
+          'avg_omr': 20500,
       },
       {
           'logo': CAR_LOGOS_BADGES['Toyota'],
           'name': 'Fortuner 4x4 / 4x2',
-          'avg_egp': int(3250000 * factor_egp),
-          'avg_omr': int(15200 * factor_omr),
+          'avg_egp': 3350000,
+          'avg_omr': 14500,
       },
       {
           'logo': CAR_LOGOS_BADGES['Toyota'],
           'name': 'Hilux Double Cab 4x4',
-          'avg_egp': int(2150000 * factor_egp),
-          'avg_omr': int(12400 * factor_omr),
+          'avg_egp': 3150000,
+          'avg_omr': 11800,
       },
       {
           'logo': CAR_LOGOS_BADGES['Toyota'],
           'name': 'Corolla',
-          'avg_egp': int(1375000 * factor_egp),
-          'avg_omr': int(7900 * factor_omr),
+          'avg_egp': 1380000,
+          'avg_omr': 7800,
       },
       {
           'logo': CAR_LOGOS_BADGES['Nissan'],
-          'name': 'Patrol V8 / V6 4x4',
-          'avg_egp': int(4850000 * factor_egp),
-          'avg_omr': int(29800 * factor_omr),
+          'name': 'Patrol V8/V6 4x4',
+          'avg_egp': 8900000,
+          'avg_omr': 27500,
       },
       {
           'logo': CAR_LOGOS_BADGES['Nissan'],
           'name': 'Navara Double Cab 4x4',
-          'avg_egp': int(1850000 * factor_egp),
-          'avg_omr': int(10800 * factor_omr),
+          'avg_egp': 2450000,
+          'avg_omr': 10800,
       },
       {
           'logo': CAR_LOGOS_BADGES['Nissan'],
           'name': 'X-Trail 4x4',
-          'avg_egp': int(2100000 * factor_egp),
-          'avg_omr': int(11900 * factor_omr),
+          'avg_egp': 2350000,
+          'avg_omr': 12200,
       },
       {
           'logo': CAR_LOGOS_BADGES['Nissan'],
           'name': 'Sunny',
-          'avg_egp': int(722500 * factor_egp),
-          'avg_omr': int(5800 * factor_omr),
+          'avg_egp': 725000,
+          'avg_omr': 6200,
       },
       {
           'logo': CAR_LOGOS_BADGES['Peugeot'],
           'name': '408',
-          'avg_egp': int(2050000 * factor_egp),
-          'avg_omr': int(13650 * factor_omr),
+          'avg_egp': 2100000,
+          'avg_omr': 12800,
       },
       {
           'logo': CAR_LOGOS_BADGES['Skoda'],
           'name': 'Octavia',
-          'avg_egp': int(1890000 * factor_egp),
-          'avg_omr': int(11350 * factor_omr),
+          'avg_egp': 2000000,
+          'avg_omr': 10500,
       },
       {
           'logo': CAR_LOGOS_BADGES['Hyundai'],
           'name': 'Elantra / Accent',
-          'avg_egp': int(935000 * factor_egp),
-          'avg_omr': int(6250 * factor_omr),
+          'avg_egp': 1050000,
+          'avg_omr': 6200,
       },
       {
           'logo': CAR_LOGOS_BADGES['Kia'],
           'name': 'Sportage',
-          'avg_egp': int(1865000 * factor_egp),
-          'avg_omr': int(10800 * factor_omr),
+          'avg_egp': 1950000,
+          'avg_omr': 9800,
       },
       {
           'logo': CAR_LOGOS_BADGES['BYD'],
           'name': 'Song Plus (EV)',
-          'avg_egp': int(1635000 * factor_egp),
-          'avg_omr': int(12350 * factor_omr),
+          'avg_egp': 1750000,
+          'avg_omr': 11500,
       },
   ]
 
@@ -677,7 +659,7 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 2. أسعار العملات (مرتبة حسب حجم التداول)
+  # 2. أسعار العملات
   forex_combined_rows = ''
   for k in forex_egp.keys():
     v_egp = forex_egp.get(k, 0)
@@ -694,18 +676,26 @@ def generate_complete_infopulse_html(
         </tr>
     """
 
-  # 3. المعادن، السلع، المحروقات والغاز
+  # 3. المعادن، السلع، المحروقات والغاز (معالجة المصفوفتين بشكل موحد)
   commodities_rows = ''
-  for k in commodities_egp.keys():
-    cg_egp = commodities_egp.get(k, 0)
-    cg_omr = commodities_omr.get(k, 0)
+  all_commodity_keys = list(commodities_egp.keys())
+  for k in commodities_omr.keys():
+    if k not in all_commodity_keys:
+      all_commodity_keys.append(k)
 
-    fmt_egp = f'{cg_egp:,.2f} ج.م' if cg_egp else '-'
-    fmt_omr = (
-        f'{cg_omr:,.3f} ر.ع.'
-        if cg_omr and cg_omr < 100
-        else (f'{cg_omr:,.2f} ر.ع.' if cg_omr else '-')
-    )
+  for k in all_commodity_keys:
+    cg_egp = commodities_egp.get(k, None)
+    cg_omr = commodities_omr.get(k, None)
+
+    if cg_egp is not None and cg_egp > 0:
+      fmt_egp = f'{cg_egp:,.2f} ج.م' if cg_egp >= 1 else f'{cg_egp:,.3f} ج.م'
+    else:
+      fmt_egp = '-'
+
+    if cg_omr is not None and cg_omr > 0:
+      fmt_omr = f'{cg_omr:,.3f} ر.ع.' if cg_omr < 100 else f'{cg_omr:,.2f} ر.ع.'
+    else:
+      fmt_omr = '-'
 
     commodities_rows += f"""
         <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -752,7 +742,7 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # القالب المصمم بالكامل للتصفح المريح على الموبايل والبريد
+  # القالب المصمم بالكامل للتصفح المريح
   html_template = """<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -802,11 +792,9 @@ def generate_complete_infopulse_html(
         </div>
         
         <div class="content" dir="rtl">
-            <!-- 1. موجز الأخبار الاقتصادية -->
             <div class="section-title">1️⃣ موجز الأخبار الاقتصادية الهامة</div>
             __NEWS_HTML__
 
-            <!-- 2. أسعار العملات -->
             <div class="section-title">2️⃣ أسعار العملات (مرتبة حسب الأكثر تداولاً)</div>
             <div class="ta-box">__TA_SUMMARY__</div>
             <table class="table-styled" dir="rtl">
@@ -822,7 +810,6 @@ def generate_complete_infopulse_html(
                 </tbody>
             </table>
 
-            <!-- 3. أسعار المعادن والسلع والمحروقات -->
             <div class="section-title">3️⃣ أسعار المعادن، الطاقة والوقود (السوق المحلي)</div>
             <table class="table-styled" dir="rtl">
                 <thead>
@@ -837,11 +824,9 @@ def generate_complete_infopulse_html(
                 </tbody>
             </table>
 
-            <!-- 4. المؤشرات الاقتصادية الرسمية -->
             <div class="section-title">4️⃣ المؤشرات الاقتصادية الرسمية الشاملة</div>
             __MACRO_HTML__
 
-            <!-- 5. دليل أسعار السيارات -->
             <div class="section-title">5️⃣ دليل أسعار السيارات (الدفع الرباعي والدبل كابينة)</div>
             <table class="table-styled" dir="rtl">
                 <thead>
@@ -856,7 +841,6 @@ def generate_complete_infopulse_html(
                 </tbody>
             </table>
 
-            <!-- 6. التحليل الفني للعملات الرقمية -->
             <div class="section-title">6️⃣ التحليل الفني للعملات الرقمية</div>
             __CRYPTO_HTML__
         </div>
@@ -886,7 +870,7 @@ def generate_complete_infopulse_html(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse بالترتيب والتنسيق الجديد...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse بأسعار السوق المحلي المحدثة...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -969,7 +953,7 @@ def main_loop():
 ⏱ التوقيت: {current_time_str}
 ===================================
 {news_summary}
-2️⃣ أسعار العملات والوقود:
+2️⃣ أسعار العملات والوقود المحلي:
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
 • بنزين 95: 24.00 ج.م/لتر | 0.239 ر.ع./لتر
 • الذهب عيار 24: {commodities_omr.get('الذهب عيار 24 (جرام)', 0):,.2f} ر.ع.

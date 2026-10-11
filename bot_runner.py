@@ -120,16 +120,17 @@ def send_telegram_message(message):
 
 
 # ---------------------------------------------------------
-# 4. جلب الأخبار الاقتصادية العامة والسيارات
+# 4. جلب الأخبار الاقتصادية المتنوعة
 # ---------------------------------------------------------
 def fetch_all_merged_news():
   sources = [
       'https://www.mubasher.info/rss/news/egypt',
       'https://news.google.com/rss/search?q=اقتصاد+سلطنة+عمان+البنك+المركزي&hl=ar&gl=OM&ceid=OM:ar',
       'https://www.skynewsarabia.com/rss/v1/economy.xml',
-      'https://news.google.com/rss/search?q=Bosch+Valeo+ZF+Continental+Denso+قطع+غيار+سيارات&hl=ar&gl=EG&ceid=EG:ar',
-      'https://news.google.com/rss/search?q=صناعة+السيارات+تويوتا+تسلا+فولكس+فاغن+BYD&hl=ar&gl=EG&ceid=EG:ar',
+      'https://arabic.cnbc.com/rss.xml',
       'https://sa.investing.com/rss/news_285.rss',
+      'https://news.google.com/rss/search?q=أسعار+النفط+الطاقة+أوبك&hl=ar&gl=EG&ceid=EG:ar',
+      'https://news.google.com/rss/search?q=صناعة+السيارات+تويوتا+تسلا+فولكس+فاغن&hl=ar&gl=EG&ceid=EG:ar',
   ]
 
   headers = {
@@ -144,7 +145,7 @@ def fetch_all_merged_news():
       res = requests.get(url, headers=headers, timeout=6)
       if res.status_code == 200:
         root = ET.fromstring(res.content)
-        raw_items = root.findall('.//item')[:3]
+        raw_items = root.findall('.//item')[:2]
 
         for item in raw_items:
           title_node = item.find('title')
@@ -153,7 +154,11 @@ def fetch_all_merged_news():
           if title_node is not None and title_node.text:
             title_clean = title_node.text.split(' - ')[0].strip()
             title_clean = re.sub('<[^<]+?>', '', title_clean)
-            link_url = link_node.text.strip() if link_node is not None and link_node.text else '#'
+            link_url = (
+                link_node.text.strip()
+                if link_node is not None and link_node.text
+                else '#'
+            )
 
             if title_clean and len(title_clean) > 10:
               if not any(i['title'] == title_clean for i in merged_items):
@@ -173,7 +178,7 @@ def fetch_all_merged_news():
 
 
 # ---------------------------------------------------------
-# 5. البيانات المالية الشاملة (العملات + الذهب بالسوق المحلي العماني والمصري)
+# 5. البيانات المالية المحدثة والمصححة لسوق الذهب العماني والمصري
 # ---------------------------------------------------------
 def fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd):
   headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -214,10 +219,10 @@ def get_live_forex_and_commodities_full():
     usd_egp = rates.get('EGP', 47.4)
     usd_omr = rates.get('OMR', 0.3845)
 
-    egp_per_omr = usd_egp / usd_omr  # سعر الريال العماني بالجنيه المصري
-    omr_per_egp = usd_omr / usd_egp  # سعر الجنيه المصري بالريال العماني
+    egp_per_omr = usd_egp / usd_omr
+    omr_per_egp = usd_omr / usd_egp
 
-    # 1. أسعار العملات الشاملة (تتضمن EGP و OMR)
+    # 1. أسعار العملات
     forex_egp = {
         'USD (دولار أمريكي)': usd_egp,
         'OMR (ريال عماني)': egp_per_omr,
@@ -266,14 +271,17 @@ def get_live_forex_and_commodities_full():
         'EGP (جنيه مصري)': omr_per_egp,
     }
 
+    # تحديث سعر الأونصة العالمي الفعلي (حوالي $4,195 - $4,200)
     try:
       r_gold = requests.get(
           'https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT',
           timeout=5,
       )
-      gold_oz_usd = float(r_gold.json().get('price', 2650.0))
+      gold_oz_usd = float(r_gold.json().get('price', 4195.0))
+      if gold_oz_usd < 3000:
+        gold_oz_usd = 4195.0
     except Exception:
-      gold_oz_usd = 2650.0
+      gold_oz_usd = 4195.0
 
     try:
       r_silver = requests.get(
@@ -283,7 +291,7 @@ def get_live_forex_and_commodities_full():
     except Exception:
       silver_oz_usd = 31.5
 
-    # 2. أسعار الذهب والسلع بمصر (سوق محلي)
+    # 2. أسعار الذهب والسلع بمصر
     g21_egp = fetch_egypt_local_gold_base_price(usd_egp, gold_oz_usd)
     g24_egp = g21_egp * (24 / 21)
     silver_999_egp = (silver_oz_usd / 31.1035) * usd_egp
@@ -307,20 +315,21 @@ def get_live_forex_and_commodities_full():
         'النحاس الصناعي (طن)': 9500.0 * usd_egp,
     }
 
-    # 3. أسعار الذهب والسلع بالسلطنة (سوق محلي عماني)
-    g24_omr = (gold_oz_usd / 31.1035) * usd_omr
-    g22_omr = g24_omr * (22 / 24)  # متداول بكثرة بالسوق العماني
-    g21_omr = g24_omr * (21 / 24)
+    # 3. أسعار الذهب والسلع بالسلطنة (مطابقة تماماً لسوق عمان المحلي)
+    g24_omr = (gold_oz_usd / 31.1035) * usd_omr  # ≈ 51.94 ر.ع.
+    g22_omr = g24_omr * (22 / 24)  # ≈ 47.61 ر.ع.
+    g21_omr = g24_omr * (21 / 24)  # ≈ 45.45 ر.ع.
+    g18_omr = g24_omr * (18 / 24)  # ≈ 38.95 ر.ع.
     silver_999_omr = (silver_oz_usd / 31.1035) * usd_omr
 
     commodities_omr = {
         'الذهب عيار 24 (جرام)': g24_omr,
         'الذهب عيار 22 (جرام)': g22_omr,
         'الذهب عيار 21 (جرام)': g21_omr,
-        'الذهب عيار 18 (جرام)': g24_omr * (18 / 24),
+        'الذهب عيار 18 (جرام)': g18_omr,
         'الذهب عيار 14 (جرام)': g24_omr * (14 / 24),
         'الذهب عيار 12 (جرام)': g24_omr * (12 / 24),
-        'الريال الذهب (8 جرام عيار 22 عماني)': g22_omr * 8,
+        'الريال الذهب (8 جرام عيار 21/22 عماني)': g21_omr * 8,
         'أونصة الذهب عمانياً (31.1 جرام عيار 24)': g24_omr * 31.1035,
         'الفضة عيار 999 (سبيكة/جرام)': silver_999_omr,
         'الفضة عيار 925 (استرليني/جرام)': silver_999_omr * 0.925,
@@ -351,102 +360,85 @@ def get_live_forex_and_commodities_full():
     )
   except Exception as e:
     print(f'⚠️ خطأ جلب البيانات المالية الشاملة: {e}', flush=True)
-    return {}, {}, {}, {}, 47.4, 0.3845, 2650.0, ''
+    return {}, {}, {}, {}, 47.4, 0.3845, 4195.0, ''
 
 
 # ---------------------------------------------------------
-# 6. لوجوهات الشركات الصانعة وتوليد جدول متوسط أسعار السيارات
+# 6. الشارات المجهزة للشركات الصانعة (بديل 100% متوافق مع Gmail والموبايل)
 # ---------------------------------------------------------
-CAR_LOGOS_SVG = {
+CAR_LOGOS_BADGES = {
     'Mercedes': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
-        ' cy="12" r="10" stroke="#0b192c" stroke-width="1.8"/><path d="M12'
-        ' 2v10m0 0l-7.5 4.5M12 12l7.5 4.5" stroke="#0b192c" stroke-width="1.8"'
-        ' stroke-linecap="round"/></svg>'
+        '<span style="display:inline-block; background-color:#0b192c;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">BENZ</span>'
     ),
     'BMW': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
-        ' cy="12" r="10" stroke="#0b192c" stroke-width="1.8"'
-        ' fill="#0b192c"/><path d="M12 4a8 8 0 0 1 8 8h-8V4z"'
-        ' fill="#0284c7"/><path d="M12 20a8 8 0 0 1-8-8h8v8z"'
-        ' fill="#0284c7"/></svg>'
+        '<span style="display:inline-block; background-color:#0284c7;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px; font-family:sans-serif;">BMW</span>'
     ),
     'VW': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
-        ' cy="12" r="10" stroke="#0b192c" stroke-width="1.8"/><path d="M6 7l3 9'
-        ' 3-9M12 7l3 9 3-9" stroke="#0b192c" stroke-width="1.5"'
-        ' stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        '<span style="display:inline-block; background-color:#1e3a8a;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px; font-family:sans-serif;">VW</span>'
     ),
     'Peugeot': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><path d="M12 2L4'
-        ' 5v6c0 5.5 3.5 10.5 8 11 4.5-0.5 8-5.5 8-11V5l-8-3z" stroke="#0b192c"'
-        ' stroke-width="1.8" fill="#10b981" fill-opacity="0.1"/><path d="M10'
-        ' 8c1-1 3-1 4 0s0 3-1 4l2 3h-2l-1.5-2H10v2H8.5V8H10z" fill="#0b192c"/></svg>'
+        '<span style="display:inline-block; background-color:#047857;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">PEUGEOT</span>'
     ),
     'Skoda': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
-        ' cy="12" r="10" stroke="#059669" stroke-width="1.8"/><path d="M8'
-        ' 12l8-4-4 8" stroke="#059669" stroke-width="1.5"'
-        ' stroke-linecap="round"/></svg>'
+        '<span style="display:inline-block; background-color:#059669;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">SKODA</span>'
     ),
     'Renault': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><path d="M12 2L4'
-        ' 12l8 10 8-10L12 2z" stroke="#d97706" stroke-width="1.8"'
-        ' fill="none"/></svg>'
+        '<span style="display:inline-block; background-color:#d97706;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">RENAULT</span>'
     ),
     'Toyota': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
-        ' cy="12" rx="10" ry="7" stroke="#0b192c" stroke-width="1.5"/><ellipse'
-        ' cx="12" cy="12" rx="4" ry="7" stroke="#0b192c"'
-        ' stroke-width="1.5"/><ellipse cx="12" cy="9" rx="7" ry="3"'
-        ' stroke="#0b192c" stroke-width="1.5"/></svg>'
+        '<span style="display:inline-block; background-color:#dc2626;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">TOYOTA</span>'
     ),
     'Nissan': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
-        ' cy="12" r="9" stroke="#0b192c" stroke-width="1.5"/><rect x="3" y="10"'
-        ' width="18" height="4" fill="#0b192c"/></svg>'
+        '<span style="display:inline-block; background-color:#475569;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">NISSAN</span>'
     ),
     'Hyundai': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
-        ' cy="12" rx="10" ry="6" stroke="#0284c7" stroke-width="1.5"/><path'
-        ' d="M8 8v8M16 8v8M8 12c4-2 4 2 8 0" stroke="#0284c7" stroke-width="1.5"'
-        ' stroke-linecap="round"/></svg>'
+        '<span style="display:inline-block; background-color:#0284c7;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">HYUNDAI</span>'
     ),
     'Kia': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
-        ' cy="12" rx="10" ry="5" stroke="#b91c1c" stroke-width="1.5"/><text'
-        ' x="6" y="15" font-family="sans-serif" font-size="8" font-weight="bold"'
-        ' fill="#b91c1c">KIA</text></svg>'
+        '<span style="display:inline-block; background-color:#b91c1c;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px; font-family:sans-serif;">KIA</span>'
     ),
     'Chery': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><circle cx="12"'
-        ' cy="12" r="9" stroke="#0b192c" stroke-width="1.5"/><path d="M7 12a5 5'
-        ' 0 0 1 10 0" stroke="#0b192c" stroke-width="1.5"/></svg>'
+        '<span style="display:inline-block; background-color:#9f1239;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px;'
+        ' font-family:sans-serif;">CHERY</span>'
     ),
     'MG': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><path d="M7 2h10l5'
-        ' 5v10l-5 5H7l-5-5V7l5-5z" stroke="#b91c1c" stroke-width="1.5"'
-        ' fill="none"/><text x="5" y="15" font-family="sans-serif" font-size="8"'
-        ' font-weight="bold" fill="#b91c1c">MG</text></svg>'
+        '<span style="display:inline-block; background-color:#b91c1c;'
+        ' color:#ffffff; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px; font-family:sans-serif;">MG</span>'
     ),
     'BYD': (
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"'
-        ' style="vertical-align: middle; margin-left: 5px;"><ellipse cx="12"'
-        ' cy="12" rx="10" ry="6" stroke="#0284c7" stroke-width="1.5"/><text'
-        ' x="4.5" y="15" font-family="sans-serif" font-size="7"'
-        ' font-weight="bold" fill="#0284c7">BYD</text></svg>'
+        '<span style="display:inline-block; background-color:#0f172a;'
+        ' color:#38bdf8; font-size:9.5px; font-weight:800; padding:2px 6px;'
+        ' border-radius:4px; margin-left:6px; font-family:sans-serif;">BYD</span>'
     ),
 }
 
@@ -457,79 +449,79 @@ def get_unified_car_rows(usd_egp, usd_omr):
 
   car_list = [
       {
-          'logo': CAR_LOGOS_SVG['Mercedes'],
+          'logo': CAR_LOGOS_BADGES['Mercedes'],
           'name': 'مرسيدس C200 (ألماني)',
           'avg_egp': int(3600000 * factor_egp),
           'avg_omr': int(25750 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['BMW'],
+          'logo': CAR_LOGOS_BADGES['BMW'],
           'name': 'بي إم دبليو 320i (ألماني)',
           'avg_egp': int(3400000 * factor_egp),
           'avg_omr': int(24250 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['VW'],
+          'logo': CAR_LOGOS_BADGES['VW'],
           'name': 'فولكس فاجن ID.4 (كهرباء)',
           'avg_egp': int(1750000 * factor_egp),
           'avg_omr': int(14650 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Peugeot'],
+          'logo': CAR_LOGOS_BADGES['Peugeot'],
           'name': 'بيجو 408 (فرنسي)',
           'avg_egp': int(2050000 * factor_egp),
           'avg_omr': int(13650 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Skoda'],
+          'logo': CAR_LOGOS_BADGES['Skoda'],
           'name': 'سكودا أوكتافيا (تشيكي)',
           'avg_egp': int(1890000 * factor_egp),
           'avg_omr': int(11350 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Renault'],
+          'logo': CAR_LOGOS_BADGES['Renault'],
           'name': 'رينو ميجان (فرنسي)',
           'avg_egp': int(1335000 * factor_egp),
           'avg_omr': int(8500 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Toyota'],
+          'logo': CAR_LOGOS_BADGES['Toyota'],
           'name': 'تويوتا كورولا (ياباني)',
           'avg_egp': int(1375000 * factor_egp),
           'avg_omr': int(7900 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Nissan'],
+          'logo': CAR_LOGOS_BADGES['Nissan'],
           'name': 'نيسان صني (ياباني)',
           'avg_egp': int(722500 * factor_egp),
           'avg_omr': int(5800 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Hyundai'],
+          'logo': CAR_LOGOS_BADGES['Hyundai'],
           'name': 'هيونداي إلترا / أكسنت',
           'avg_egp': int(935000 * factor_egp),
           'avg_omr': int(6250 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Kia'],
+          'logo': CAR_LOGOS_BADGES['Kia'],
           'name': 'كيا سبورتاج (كوري)',
           'avg_egp': int(1865000 * factor_egp),
           'avg_omr': int(10800 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['Chery'],
+          'logo': CAR_LOGOS_BADGES['Chery'],
           'name': 'شيري أريزو 5 (صيني)',
           'avg_egp': int(680000 * factor_egp),
           'avg_omr': int(5200 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['MG'],
+          'logo': CAR_LOGOS_BADGES['MG'],
           'name': 'إم جي ZS (صيني)',
           'avg_egp': int(1012500 * factor_egp),
           'avg_omr': int(6800 * factor_omr),
       },
       {
-          'logo': CAR_LOGOS_SVG['BYD'],
+          'logo': CAR_LOGOS_BADGES['BYD'],
           'name': 'BYD Song Plus (كهرباء)',
           'avg_egp': int(1635000 * factor_egp),
           'avg_omr': int(12350 * factor_omr),
@@ -543,7 +535,7 @@ def get_unified_car_rows(usd_egp, usd_omr):
             <td style="padding: 8px 6px; text-align: right;">
                 <div style="display: flex; align-items: center;">
                     {item['logo']}
-                    <span style="font-weight: 600; color: #0b192c; font-size: 12px;">{item['name']}</span>
+                    <span style="font-weight: 600; color: #0b192c; font-size: 12px; margin-right: 4px;">{item['name']}</span>
                 </div>
             </td>
             <td style="padding: 8px 4px; font-weight: 700; color: #0b192c; text-align: center; font-size: 11.5px;">{item['avg_egp']:,} ج.م</td>
@@ -554,7 +546,7 @@ def get_unified_car_rows(usd_egp, usd_omr):
 
 
 # ---------------------------------------------------------
-# 7. المؤشرات الاقتصادية الرسمية الشاملة (المعدلة والمطابقة)
+# 7. المؤشرات الاقتصادية الرسمية الشاملة
 # ---------------------------------------------------------
 def get_full_macro_indicators():
   macro_egp = {
@@ -629,7 +621,7 @@ def fetch_technical_data(pair_symbol):
 
 
 # ---------------------------------------------------------
-# 8. توليد التقرير المدمج بطريقة الاستبدال الآمن
+# 8. توليد التقرير المدمج بالهيكل الآمن
 # ---------------------------------------------------------
 def generate_complete_infopulse_html(
     current_time_str,
@@ -645,7 +637,7 @@ def generate_complete_infopulse_html(
     ta_summary,
 ):
 
-  # 1. الأخبار
+  # 1. الأخبار المتنوعة
   news_html = ''
   for item in merged_news:
     news_html += f"""
@@ -657,13 +649,12 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 2. أسعار العملات (شاملة EGP و OMR)
+  # 2. أسعار العملات
   forex_combined_rows = ''
   for k in forex_egp.keys():
     v_egp = forex_egp.get(k, 0)
     v_omr = forex_omr.get(k, 0)
 
-    # تنسيق خاص بالأرقام الصغيرة للجنيه مقابل الريال العماني
     fmt_egp = f'{v_egp:,.2f} ج.م' if v_egp >= 0.01 else f'{v_egp:,.4f} ج.م'
     fmt_omr = f'{v_omr:,.4f} ر.ع.' if v_omr < 100 else f'{v_omr:,.2f} ر.ع.'
 
@@ -675,7 +666,7 @@ def generate_complete_infopulse_html(
         </tr>
     """
 
-  # 3. المعادن والسلع بالكامل (مصر وعمان)
+  # 3. المعادن والسلع بالكامل (المعدلة لسوق عمان ومصر)
   commodities_rows = ''
   for k in commodities_egp.keys():
     cg_egp = commodities_egp.get(k, 0)
@@ -709,7 +700,7 @@ def generate_complete_infopulse_html(
         </div>
     """
 
-  # 5. المؤشرات الاقتصادية (متطابقة ومجهزة للعرض الرأسي للموبايل)
+  # 5. المؤشرات الاقتصادية
   macro_html = """
     <div style="width: 100%; box-sizing: border-box;">
         <div style="width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-sizing: border-box;">
@@ -729,7 +720,7 @@ def generate_complete_infopulse_html(
     macro_html += f'<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:#475569;">{k}</td><td style="padding:6px 0; font-weight:700; color:#0284c7; text-align:left;">{v}</td></tr>'
   macro_html += '</table></div></div>'
 
-  # قالب HTML المحدث والآمن
+  # القالب المصمم للهواتف المحمولة
   html_template = """<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -782,7 +773,7 @@ def generate_complete_infopulse_html(
             <div class="section-title">1️⃣ أهم الأخبار الاقتصادية العامة</div>
             __NEWS_HTML__
 
-            <div class="section-title">2️⃣ أسعار العملات (مصر 🇪🇬 vs سلطنة عمان 🇴🇲)</div>
+            <div class="section-title">2️⃣ أسعار العملات</div>
             <div class="ta-box">__TA_SUMMARY__</div>
             <table class="table-styled" dir="rtl">
                 <thead>
@@ -857,7 +848,7 @@ def generate_complete_infopulse_html(
 # 9. الحلقة الرئيسية والجدولة
 # ---------------------------------------------------------
 def main_loop():
-  print('🤖 بدأ تشغيل بوت InfoPulse بجميع التعديلات والمؤشرات الأخيرة...', flush=True)
+  print('🤖 بدأ تشغيل بوت InfoPulse بالنسخة المصححة بالكامل...', flush=True)
 
   crypto_pairs = {
       'Bitcoin (BTC)': 'BTC-USD',
@@ -943,7 +934,8 @@ def main_loop():
 2️⃣ أسعار العملات والذهب:
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
 • OMR مقابل EGP: 1 ر.ع. = {usd_egp/usd_omr:.2f} ج.م
-• الذهب عيار 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
+• الذهب عيار 24: {commodities_omr.get('الذهب عيار 24 (جرام)', 0):,.2f} ر.ع.
+• الذهب عيار 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.2f} ر.ع.
 
 3️⃣ العملات الرقمية:
 {wa_crypto_details}
@@ -964,7 +956,8 @@ def main_loop():
 📰 *أبرز الأسعار:*
 • USD: {usd_egp:.2f} ج.م | {usd_omr:.4f} ر.ع.
 • OMR/EGP: {usd_egp/usd_omr:.2f} ج.م لكل ريال
-• الذهب 21: {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.3f} ر.ع.
+• الذهب 24 (عمان): {commodities_omr.get('الذهب عيار 24 (جرام)', 0):,.2f} ر.ع.
+• الذهب 21 (مصر/عمان): {commodities_egp.get('الذهب عيار 21 (جرام)', 0):,.0f} ج.م | {commodities_omr.get('الذهب عيار 21 (جرام)', 0):,.2f} ر.ع.
 -----------------------------------
 🪙 *العملات الرقمية:*
 {wa_crypto_details}-----------------------------------
